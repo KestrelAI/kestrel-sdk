@@ -7,7 +7,7 @@ Build, deploy, and manage workflows programmatically with a typed, fluent API.
 ## Installation
 
 ```bash
-pip install kestrelai
+pip install kestrel-workflows
 ```
 
 ## Quick Start
