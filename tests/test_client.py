@@ -157,7 +157,7 @@ class TestApprovals:
 
 class TestRequests:
     @respx.mock
-    def test_list_unmatched(self, client: KestrelClient):
+    def test_list_returns_all_statuses(self, client: KestrelClient):
         respx.get(f"{SERVER}/api/workflow-requests").mock(
             return_value=httpx.Response(200, json={
                 "requests": [
@@ -169,8 +169,21 @@ class TestRequests:
             })
         )
         reqs = client.requests.list()
-        assert len(reqs) == 2
-        assert all(r.status in ("no_workflow", "rejected") for r in reqs)
+        assert len(reqs) == 3
+
+    @respx.mock
+    def test_list_with_status_filter(self, client: KestrelClient):
+        respx.get(f"{SERVER}/api/workflow-requests").mock(
+            return_value=httpx.Response(200, json={
+                "requests": [
+                    {"id": "r-1", "status": "no_workflow", "prompt": "create vpc"},
+                    {"id": "r-2", "status": "executing", "prompt": "create cm"},
+                ],
+                "total": 2,
+            })
+        )
+        reqs = client.requests.list(status="no_workflow")
+        assert len(reqs) == 1 and reqs[0].id == "r-1"
 
 
 class TestAuth:

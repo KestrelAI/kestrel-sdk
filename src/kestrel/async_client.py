@@ -7,7 +7,7 @@ from typing import Any
 import httpx
 
 from .auth import Config, load_config
-from .exceptions import AuthError, ConflictError, KestrelError, NotFoundError, ServerError
+from .exceptions import AuthError, ConflictError, KestrelError, NotFoundError, ServerError, ValidationError
 from .models import (
     Approval,
     Catalog,
@@ -169,11 +169,18 @@ class _AsyncRequestsNamespace:
     def __init__(self, client: AsyncKestrelClient):
         self._c = client
 
-    async def list(self) -> list[WorkflowRequest]:
+    async def list(self, *, status: str | None = None) -> list[WorkflowRequest]:
+        """List workflow requests, optionally filtered by status.
+
+        By default returns *all* requests the server has. Pass ``status`` to
+        filter client-side (e.g. ``status="no_workflow"``).
+        """
         data = await self._c._get("/api/workflow-requests")
         items = data.get("requests", []) if isinstance(data, dict) else data
         results = [WorkflowRequest.model_validate(r) for r in items]
-        return [r for r in results if r.status in ("no_workflow", "approved", "rejected")]
+        if status is not None:
+            return [r for r in results if r.status == status]
+        return results
 
     async def approve(self, request_id: str) -> None:
         await self._c._post(f"/api/workflow-requests/{request_id}/approve")
@@ -260,6 +267,15 @@ class AsyncKestrelClient:
         if resp.status_code >= 500:
             raise ServerError(resp.text[:200], status_code=resp.status_code)
         if resp.status_code >= 400:
+            try:
+                data = resp.json()
+                if isinstance(data, dict) and "missing_fields" in data:
+                    msg = data.get("message") or data.get("error", "Validation failed")
+                    raise ValidationError(msg, missing_fields=data["missing_fields"], status_code=resp.status_code)
+                msg = data.get("message") or data.get("error") or resp.text[:200]
+                raise KestrelError(msg, status_code=resp.status_code)
+            except (ValueError, KeyError):
+                pass
             raise KestrelError(resp.text[:200], status_code=resp.status_code)
         if not resp.text:
             return None

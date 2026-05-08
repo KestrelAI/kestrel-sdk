@@ -3,10 +3,33 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
-class Workflow(BaseModel):
+class _Base(BaseModel):
+    """Coerce server ``null`` into the field's default for any field with a
+    ``default_factory``.
+
+    Pydantic v2 only invokes ``default_factory`` when the key is missing, not
+    when the server explicitly sends ``null``. The Kestrel API legitimately
+    returns ``null`` for collection fields like ``WorkflowRequest.suggested_workflow``
+    and ``Workflow.definition``, so models that declare those as non-Optional
+    dicts/lists need this validator to avoid raising ``ValidationError``.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_null_defaults(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            for fname, finfo in cls.model_fields.items():
+                if fname in data and data[fname] is None and finfo.default_factory is not None:
+                    data[fname] = finfo.default_factory()
+        return data
+
+
+class Workflow(_Base):
     id: str
     tenant_id: str = ""
     name: str
@@ -23,7 +46,7 @@ class Workflow(BaseModel):
     trigger_count: int = 0
 
 
-class GenerateResult(BaseModel):
+class GenerateResult(_Base):
     success: bool = True
     name: str = ""
     description: str = ""
@@ -33,7 +56,7 @@ class GenerateResult(BaseModel):
     error: Optional[str] = None
 
 
-class WorkflowStats(BaseModel):
+class WorkflowStats(_Base):
     model_config = {"arbitrary_types_allowed": True}
 
     total_workflows: int = 0
@@ -43,7 +66,7 @@ class WorkflowStats(BaseModel):
     daily_executions: list[DailyExecutionCount] = Field(default_factory=list)
 
 
-class DailyExecutionCount(BaseModel):
+class DailyExecutionCount(_Base):
     date: str = ""
     completed: int = 0
     failed: int = 0
@@ -55,7 +78,7 @@ class DailyExecutionCount(BaseModel):
 WorkflowStats.model_rebuild()
 
 
-class Execution(BaseModel):
+class Execution(_Base):
     id: str
     workflow_id: str = ""
     tenant_id: str = ""
@@ -69,14 +92,14 @@ class Execution(BaseModel):
     current_step_id: str = ""
 
 
-class ExecutionList(BaseModel):
+class ExecutionList(_Base):
     executions: list[Execution] = Field(default_factory=list)
     total: int = 0
     page: int = 1
     page_size: int = 20
 
 
-class Approval(BaseModel):
+class Approval(_Base):
     id: str
     execution_id: str = ""
     tenant_id: str = ""
@@ -89,9 +112,13 @@ class Approval(BaseModel):
     pr_url: str = ""
     expires_at: Optional[str] = None
     context: dict[str, Any] = Field(default_factory=dict)
+    approval_responses: list[dict[str, Any]] = Field(default_factory=list)
+    approval_rules: list[dict[str, Any]] = Field(default_factory=list)
+    slack_channel_id: str = ""
+    slack_message_ts: str = ""
 
 
-class WorkflowRequest(BaseModel):
+class WorkflowRequest(_Base):
     model_config = {"populate_by_name": True}
 
     id: str
@@ -111,7 +138,7 @@ class WorkflowRequest(BaseModel):
     updated_at: str = ""
 
 
-class RequestResult(BaseModel):
+class RequestResult(_Base):
     status: str = ""
     request_id: str = ""
     workflow_name: str = ""
@@ -124,7 +151,7 @@ class RequestResult(BaseModel):
     error: str = ""
 
 
-class SuggestedWorkflow(BaseModel):
+class SuggestedWorkflow(_Base):
     id: str = ""
     tenant_id: str = ""
     name: str = ""
@@ -134,7 +161,7 @@ class SuggestedWorkflow(BaseModel):
     created_at: str = ""
 
 
-class SignalTemplate(BaseModel):
+class SignalTemplate(_Base):
     id: str
     source: str = ""
     name: str = ""
@@ -143,7 +170,7 @@ class SignalTemplate(BaseModel):
     signal_type: str = ""
 
 
-class ActionTemplate(BaseModel):
+class ActionTemplate(_Base):
     id: str
     integration: str = ""
     name: str = ""
@@ -151,18 +178,22 @@ class ActionTemplate(BaseModel):
     category: str = ""
 
 
-class IntegrationMeta(BaseModel):
+class IntegrationMeta(_Base):
     id: str
     name: str = ""
 
 
-class Catalog(BaseModel):
+class Catalog(_Base):
     signals: list[SignalTemplate] = Field(default_factory=list)
     actions: list[ActionTemplate] = Field(default_factory=list)
     integrations: list[IntegrationMeta] = Field(default_factory=list)
+    custom_blocks: list[dict[str, Any]] = Field(default_factory=list)
+    slack_channels: list[dict[str, Any]] = Field(default_factory=list)
+    slack_users: list[dict[str, Any]] = Field(default_factory=list)
+    trigger_variables: dict[str, Any] = Field(default_factory=dict)
 
 
-class IntegrationStatus(BaseModel):
+class IntegrationStatus(_Base):
     id: str
     name: str = ""
     connected: bool = False

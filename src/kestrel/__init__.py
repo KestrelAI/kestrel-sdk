@@ -2,7 +2,7 @@
 
 from .client import KestrelClient
 from .async_client import AsyncKestrelClient
-from .exceptions import AuthError, ConflictError, KestrelError, NotFoundError, ServerError
+from .exceptions import AuthError, ConflictError, KestrelError, NotFoundError, ServerError, ValidationError
 from .models import (
     Approval,
     Catalog,
@@ -24,6 +24,7 @@ __all__ = [
     "AuthError",
     "NotFoundError",
     "ConflictError",
+    "ValidationError",
     "ServerError",
     "Workflow",
     "GenerateResult",
