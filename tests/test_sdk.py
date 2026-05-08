@@ -36,6 +36,7 @@ from kestrel import (
     KestrelError,
     NotFoundError,
     ServerError,
+    ValidationError,
 )
 from kestrel.workflows import Action, Approval, Condition, Trigger, Workflow
 
@@ -127,6 +128,179 @@ class TestHttpErrorMapping:
     def test_empty_body_returns_none(self, client):
         respx.post(f"{SERVER}/api/workflows/wf-1/activate").mock(httpx.Response(204, text=""))
         assert client.workflows.activate("wf-1") is None
+
+
+# ---------------------------------------------------------------------------
+# Workflow activation validation (save allowed, activate blocked if missing fields)
+# ---------------------------------------------------------------------------
+
+
+class TestWorkflowActivationValidation:
+    """Tests that workflows with missing required fields can be saved but not activated."""
+
+    MISSING_FIELDS_RESPONSE = {
+        "error": "Workflow has missing required fields",
+        "missing_fields": [
+            {"node_id": "action-1", "node_label": "Generate Manifest", "field_name": "name", "field_label": "Resource Name"},
+        ],
+        "message": 'Node "Generate Manifest": required field "Resource Name" is not set',
+    }
+
+    INCOMPLETE_DEFINITION = {
+        "nodes": [
+            {"id": "trigger-1", "type": "trigger", "data": {"source": "kubernetes"}},
+            {
+                "id": "action-1", "type": "action",
+                "data": {
+                    "action": "kestrel-generate-k8s-manifest",
+                    "label": "Generate Manifest",
+                    "integration": "kestrel",
+                    "config": {"resource_type": "Deployment"},
+                },
+            },
+        ],
+        "edges": [{"id": "e1", "source": "trigger-1", "target": "action-1"}],
+    }
+
+    COMPLETE_DEFINITION = {
+        "nodes": [
+            {"id": "trigger-1", "type": "trigger", "data": {"source": "kubernetes"}},
+            {
+                "id": "action-1", "type": "action",
+                "data": {
+                    "action": "kestrel-generate-k8s-manifest",
+                    "label": "Generate Manifest",
+                    "integration": "kestrel",
+                    "config": {"resource_type": "Deployment", "name": "my-app"},
+                },
+            },
+        ],
+        "edges": [{"id": "e1", "source": "trigger-1", "target": "action-1"}],
+    }
+
+    @respx.mock
+    def test_save_allowed_with_missing_fields(self, client):
+        """Creating (saving) a workflow with missing required fields should succeed."""
+        respx.post(f"{SERVER}/api/workflows").mock(
+            httpx.Response(201, json={
+                "id": "wf-incomplete", "name": "Incomplete WF", "status": "draft",
+                "definition": self.INCOMPLETE_DEFINITION,
+                "trigger_config": {"source": "kubernetes"},
+            })
+        )
+        wf = client.workflows.create(
+            name="Incomplete WF",
+            definition=self.INCOMPLETE_DEFINITION,
+            trigger_config={"source": "kubernetes"},
+        )
+        assert wf.id == "wf-incomplete"
+        assert wf.status == "draft"
+
+    @respx.mock
+    def test_activate_blocked_with_missing_fields(self, client):
+        """Activating a workflow with missing required fields should raise ValidationError."""
+        respx.post(f"{SERVER}/api/workflows/wf-incomplete/activate").mock(
+            httpx.Response(400, json=self.MISSING_FIELDS_RESPONSE)
+        )
+        with pytest.raises(ValidationError) as exc_info:
+            client.workflows.activate("wf-incomplete")
+
+        err = exc_info.value
+        assert err.status_code == 400
+        assert len(err.missing_fields) == 1
+        assert err.missing_fields[0]["field_name"] == "name"
+        assert err.missing_fields[0]["node_label"] == "Generate Manifest"
+        assert "Resource Name" in str(err)
+
+    @respx.mock
+    def test_save_allowed_with_complete_fields(self, client):
+        """Creating a workflow with all required fields populated should succeed."""
+        respx.post(f"{SERVER}/api/workflows").mock(
+            httpx.Response(201, json={
+                "id": "wf-complete", "name": "Complete WF", "status": "draft",
+                "definition": self.COMPLETE_DEFINITION,
+                "trigger_config": {"source": "kubernetes"},
+            })
+        )
+        wf = client.workflows.create(
+            name="Complete WF",
+            definition=self.COMPLETE_DEFINITION,
+            trigger_config={"source": "kubernetes"},
+        )
+        assert wf.id == "wf-complete"
+
+    @respx.mock
+    def test_activate_allowed_with_complete_fields(self, client):
+        """Activating a workflow with all required fields should succeed."""
+        respx.post(f"{SERVER}/api/workflows/wf-complete/activate").mock(
+            httpx.Response(200, json={"status": "active"})
+        )
+        client.workflows.activate("wf-complete")
+
+    @respx.mock
+    def test_deploy_with_activate_raises_validation_error_for_incomplete(self, client):
+        """deploy(wf, activate=True) should raise ValidationError if fields are missing."""
+        respx.post(f"{SERVER}/api/workflows").mock(
+            httpx.Response(201, json={
+                "id": "wf-inc", "name": "Inc", "status": "draft",
+                "definition": self.INCOMPLETE_DEFINITION,
+                "trigger_config": {"source": "kubernetes"},
+            })
+        )
+        respx.post(f"{SERVER}/api/workflows/wf-inc/activate").mock(
+            httpx.Response(400, json=self.MISSING_FIELDS_RESPONSE)
+        )
+
+        wf_builder = (
+            Workflow("Inc")
+            .trigger(Trigger.k8s_pod_status())
+            .then(Action("kestrel", "kestrel-generate-k8s-manifest")
+                  .resource_type("Deployment"))
+        )
+        with pytest.raises(ValidationError) as exc_info:
+            client.workflows.deploy(wf_builder, activate=True)
+        assert exc_info.value.missing_fields[0]["field_name"] == "name"
+
+    @respx.mock
+    def test_deploy_with_activate_succeeds_for_complete(self, client):
+        """deploy(wf, activate=True) should succeed when all fields are present."""
+        respx.post(f"{SERVER}/api/workflows").mock(
+            httpx.Response(201, json={
+                "id": "wf-ok", "name": "OK", "status": "draft",
+                "definition": self.COMPLETE_DEFINITION,
+                "trigger_config": {"source": "kubernetes"},
+            })
+        )
+        respx.post(f"{SERVER}/api/workflows/wf-ok/activate").mock(
+            httpx.Response(200, json={"status": "active"})
+        )
+
+        wf_builder = (
+            Workflow("OK")
+            .trigger(Trigger.k8s_pod_status())
+            .then(Action("kestrel", "kestrel-generate-k8s-manifest")
+                  .resource_type("Deployment").name("my-app"))
+        )
+        created = client.workflows.deploy(wf_builder, activate=True)
+        assert created.status == "active"
+
+    @respx.mock
+    def test_validation_error_multiple_missing_fields(self, client):
+        """ValidationError should expose all missing fields when multiple are empty."""
+        multi_missing = {
+            "error": "Workflow has missing required fields",
+            "missing_fields": [
+                {"node_id": "action-1", "node_label": "Gen Manifest", "field_name": "resource_type", "field_label": "Resource Type"},
+                {"node_id": "action-1", "node_label": "Gen Manifest", "field_name": "name", "field_label": "Resource Name"},
+            ],
+            "message": "The following required fields are not set:\n  - Node \"Gen Manifest\": \"Resource Type\"\n  - Node \"Gen Manifest\": \"Resource Name\"\n",
+        }
+        respx.post(f"{SERVER}/api/workflows/wf-x/activate").mock(
+            httpx.Response(400, json=multi_missing)
+        )
+        with pytest.raises(ValidationError) as exc_info:
+            client.workflows.activate("wf-x")
+        assert len(exc_info.value.missing_fields) == 2
 
 
 # ---------------------------------------------------------------------------
