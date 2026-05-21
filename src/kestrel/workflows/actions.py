@@ -462,6 +462,10 @@ class Action:
     def github_wait_pr_merge() -> Action:
         return Action("github", "github-wait-pr-merge")
 
+    @staticmethod
+    def github_investigate_action_failure() -> Action:
+        return Action("github", "github-investigate-action-failure")
+
     # ======================================================================
     # Factory methods — GitLab
     # ======================================================================
@@ -605,6 +609,14 @@ class Action:
     @staticmethod
     def argocd_get_status() -> Action:
         return Action("argocd", "argocd-get-status")
+
+    @staticmethod
+    def argocd_rollback() -> Action:
+        return Action("argocd", "argocd-rollback")
+
+    @staticmethod
+    def argocd_find_app() -> Action:
+        return Action("argocd", "argocd-find-app")
 
     # ======================================================================
     # Factory methods — AWS Cost

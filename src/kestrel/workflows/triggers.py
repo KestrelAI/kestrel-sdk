@@ -134,6 +134,38 @@ class Trigger:
         self._filters["request_keywords"] = list(k)
         return self
 
+    # -- GitHub filters ----------------------------------------------------
+
+    def repos(self, *repos: str) -> Trigger:
+        self._filters["github_repos"] = list(repos)
+        return self
+
+    def branches(self, *branches: str) -> Trigger:
+        self._filters["github_branches"] = list(branches)
+        return self
+
+    def workflow_names(self, *names: str) -> Trigger:
+        self._filters["github_workflow_names"] = list(names)
+        return self
+
+    # -- Datadog filters ---------------------------------------------------
+
+    def monitor_names(self, *names: str) -> Trigger:
+        self._filters["datadog_monitor_names"] = list(names)
+        return self
+
+    def monitor_ids(self, *ids: str) -> Trigger:
+        self._filters["datadog_monitor_ids"] = list(ids)
+        return self
+
+    def alert_transitions(self, *transitions: str) -> Trigger:
+        self._filters["datadog_alert_transitions"] = list(transitions)
+        return self
+
+    def datadog_tags(self, *tags: str) -> Trigger:
+        self._filters["datadog_tags"] = list(tags)
+        return self
+
     # ======================================================================
     # Factory methods — Kubernetes
     # ======================================================================
@@ -309,6 +341,54 @@ class Trigger:
     @staticmethod
     def custom_webhook(signal_type: str = "any") -> Trigger:
         return Trigger("custom_webhook", signal_type)
+
+    # ======================================================================
+    # Factory methods — GitHub
+    # ======================================================================
+
+    @staticmethod
+    def github_pr_opened() -> Trigger:
+        return Trigger("github", "pull_request.opened")
+
+    @staticmethod
+    def github_pr_merged() -> Trigger:
+        return Trigger("github", "pull_request.merged")
+
+    @staticmethod
+    def github_action_completed() -> Trigger:
+        return Trigger("github", "workflow_run.completed")
+
+    @staticmethod
+    def github_action_failed() -> Trigger:
+        return Trigger("github", "workflow_run.failed")
+
+    @staticmethod
+    def github_any() -> Trigger:
+        return Trigger("github", "any")
+
+    # ======================================================================
+    # Factory methods — Datadog
+    # ======================================================================
+
+    @staticmethod
+    def datadog_monitor_alert() -> Trigger:
+        return Trigger("datadog", "monitor.alert")
+
+    @staticmethod
+    def datadog_monitor_warn() -> Trigger:
+        return Trigger("datadog", "monitor.warn")
+
+    @staticmethod
+    def datadog_monitor_recovered() -> Trigger:
+        return Trigger("datadog", "monitor.recovered")
+
+    @staticmethod
+    def datadog_monitor_no_data() -> Trigger:
+        return Trigger("datadog", "monitor.no_data")
+
+    @staticmethod
+    def datadog_monitor_any() -> Trigger:
+        return Trigger("datadog", "any")
 
     # ======================================================================
     # Internal serialisation
