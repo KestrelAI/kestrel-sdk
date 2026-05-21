@@ -619,6 +619,30 @@ class Action:
         return Action("argocd", "argocd-find-app")
 
     # ======================================================================
+    # Factory methods — Helm
+    # ======================================================================
+
+    @staticmethod
+    def helm_upgrade() -> Action:
+        return Action("helm", "helm-upgrade")
+
+    @staticmethod
+    def helm_install() -> Action:
+        return Action("helm", "helm-install")
+
+    @staticmethod
+    def helm_rollback() -> Action:
+        return Action("helm", "helm-rollback")
+
+    @staticmethod
+    def helm_uninstall() -> Action:
+        return Action("helm", "helm-uninstall")
+
+    @staticmethod
+    def helm_status() -> Action:
+        return Action("helm", "helm-status")
+
+    # ======================================================================
     # Factory methods — AWS Cost
     # ======================================================================
 
