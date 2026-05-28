@@ -134,6 +134,14 @@ class _WorkflowsNamespace:
             self._c._post(f"/api/workflows/{workflow_id}/test")
         )
 
+    def rollback(self, workflow_id: str, *, version: int) -> dict[str, Any]:
+        """Roll back a workflow to a previous version number."""
+        return self._c._post(f"/api/workflows/{workflow_id}/rollback?version={version}")
+
+    def list_versions(self, workflow_id: str, *, page: int = 1, page_size: int = 10) -> dict[str, Any]:
+        """List version history for a workflow."""
+        return self._c._get(f"/api/workflows/{workflow_id}/versions", params={"page": page, "page_size": page_size})
+
     def generate(self, prompt: str) -> GenerateResult:
         data = self._c._post("/api/workflows/generate", json={"prompt": prompt})
         return GenerateResult.model_validate(data)
@@ -183,6 +191,11 @@ class _ExecutionsNamespace:
 
     def cancel(self, execution_id: str) -> None:
         self._c._post(f"/api/workflow-executions/{execution_id}/cancel")
+
+    def replay(self, execution_id: str, *, mode: str = "full") -> Execution:
+        """Replay a failed execution. mode is 'full' (from beginning) or 'from_failed' (from failed step)."""
+        data = self._c._post(f"/api/workflow-executions/{execution_id}/replay", json={"mode": mode})
+        return Execution.model_validate(self._c._get(f"/api/workflow-executions/{data['execution_id']}"))
 
     def wait(self, execution_id: str, *, poll_interval: float = 2.0, timeout: float = 300.0) -> Execution:
         """Poll until execution completes, fails, or times out."""
