@@ -149,8 +149,15 @@ class _WorkflowsNamespace:
     def request(self, prompt: str, *, requester_name: str | None = None) -> RequestResult:
         name = requester_name or self._c._config.email or "python-sdk"
         data = self._c._post(
-            "/api/workflow-requests",
+            "/api/workflow-requests/submit",
             json={"prompt": prompt, "source": "sdk", "requester_name": name},
+        )
+        return RequestResult.model_validate(data)
+
+    def request_reply(self, request_id: str, message: str) -> RequestResult:
+        data = self._c._post(
+            f"/api/workflow-requests/{request_id}/reply",
+            json={"message": message},
         )
         return RequestResult.model_validate(data)
 

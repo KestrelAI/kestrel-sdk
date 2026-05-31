@@ -201,6 +201,21 @@ class _AsyncRequestsNamespace:
     async def reject(self, request_id: str) -> None:
         await self._c._post(f"/api/workflow-requests/{request_id}/reject")
 
+    async def submit(self, prompt: str, *, requester_name: str | None = None) -> dict:
+        name = requester_name or "python-sdk"
+        data = await self._c._post(
+            "/api/workflow-requests/submit",
+            json={"prompt": prompt, "source": "sdk", "requester_name": name},
+        )
+        return data
+
+    async def reply(self, request_id: str, message: str) -> dict:
+        data = await self._c._post(
+            f"/api/workflow-requests/{request_id}/reply",
+            json={"message": message},
+        )
+        return data
+
 
 class AsyncKestrelClient:
     """Async entry point for the Kestrel Python SDK.
