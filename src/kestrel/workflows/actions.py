@@ -371,6 +371,29 @@ class Action:
         return Action("kestrel", "kestrel-wait")
 
     @staticmethod
+    def kubectl_execute(command: str = "", cluster_id: str = "") -> Action:
+        a = Action("kestrel", "kestrel-kubectl-execute")
+        if command:
+            a = a.config(command=command)
+        if cluster_id:
+            a = a.config(cluster_id=cluster_id)
+        return a
+
+    @staticmethod
+    def kubectl_apply(manifest: str = "", cluster_id: str = "", namespace: str = "") -> Action:
+        a = Action("kestrel", "kestrel-kubectl-apply")
+        cfg: dict = {}
+        if manifest:
+            cfg["manifest"] = manifest
+        if cluster_id:
+            cfg["cluster_id"] = cluster_id
+        if namespace:
+            cfg["namespace"] = namespace
+        if cfg:
+            a = a.config(**cfg)
+        return a
+
+    @staticmethod
     def kestrel_generate_k8s_manifest() -> Action:
         return Action("kestrel", "kestrel-generate-k8s-manifest")
 
