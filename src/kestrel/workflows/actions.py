@@ -380,17 +380,13 @@ class Action:
         return a
 
     @staticmethod
-    def kubectl_apply(manifest: str = "", cluster_id: str = "", namespace: str = "") -> Action:
-        a = Action("kestrel", "kestrel-kubectl-apply")
-        cfg: dict = {}
-        if manifest:
-            cfg["manifest"] = manifest
+    def generate_kubectl_command(query: str = "", cluster_id: str = "") -> Action:
+        """AI generates a kubectl command from natural language. Pipe output to kubectl_execute."""
+        a = Action("kestrel", "kestrel-generate-kubectl-command")
+        if query:
+            a = a.config(query=query)
         if cluster_id:
-            cfg["cluster_id"] = cluster_id
-        if namespace:
-            cfg["namespace"] = namespace
-        if cfg:
-            a = a.config(**cfg)
+            a = a.config(cluster_id=cluster_id)
         return a
 
     @staticmethod
