@@ -379,6 +379,11 @@ class Trigger:
         return Trigger("github", "workflow_run.failed")
 
     @staticmethod
+    def github_push() -> Trigger:
+        """Triggers when new commits are pushed to a branch."""
+        return Trigger("github", "push")
+
+    @staticmethod
     def github_any() -> Trigger:
         return Trigger("github", "any")
 
