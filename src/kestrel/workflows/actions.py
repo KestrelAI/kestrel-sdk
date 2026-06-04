@@ -470,6 +470,11 @@ class Action:
         return Action("github", "github-investigate-code")
 
     @staticmethod
+    def github_analyze_push() -> Action:
+        """Analyze a git push to determine affected services/components."""
+        return Action("github", "github-analyze-push")
+
+    @staticmethod
     def github_generate_code_fix() -> Action:
         return Action("github", "github-generate-code-fix")
 
