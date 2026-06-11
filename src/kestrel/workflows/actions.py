@@ -183,6 +183,20 @@ class Action:
     def status(self, s: str) -> Action:
         return self.config("status", s)
 
+    # -- Linear --------------------------------------------------------------
+
+    def team(self, key: str) -> Action:
+        return self.config("team_key", key)
+
+    def issue_identifier(self, identifier: str) -> Action:
+        return self.config("issue_identifier", identifier)
+
+    def project_name(self, name: str) -> Action:
+        return self.config("project", name)
+
+    def limit(self, n: int) -> Action:
+        return self.config("limit", n)
+
     # -- Confluence --------------------------------------------------------
 
     def space_key(self, sk: str) -> Action:
@@ -573,6 +587,26 @@ class Action:
     @staticmethod
     def jira_transition_ticket() -> Action:
         return Action("jira", "jira-transition-ticket")
+
+    # ======================================================================
+    # Factory methods — Linear
+    # ======================================================================
+
+    @staticmethod
+    def linear_create_issue() -> Action:
+        return Action("linear", "linear-create-issue")
+
+    @staticmethod
+    def linear_add_comment() -> Action:
+        return Action("linear", "linear-add-comment")
+
+    @staticmethod
+    def linear_update_issue() -> Action:
+        return Action("linear", "linear-update-issue")
+
+    @staticmethod
+    def linear_search_issues() -> Action:
+        return Action("linear", "linear-search-issues")
 
     # ======================================================================
     # Factory methods — Datadog

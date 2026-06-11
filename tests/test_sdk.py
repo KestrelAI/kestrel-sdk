@@ -686,6 +686,57 @@ class TestBuilderDSL:
         d, _ = wf.build()
         assert len(d["nodes"]) == 3
 
+    def test_linear_actions_serialize(self):
+        wf = (
+            Workflow("linear")
+            .trigger(Trigger.k8s_pod_status().reasons("CrashLoopBackOff"))
+            .then(
+                Action.linear_create_issue()
+                .team("ENG")
+                .title("{{incident.title}}")
+                .body("{{rca_result.root_cause}}")
+                .priority("High")
+                .labels("bug, infra")
+                .project_name("Reliability")
+                .label("Create Linear Issue")
+            )
+            .then(
+                Action.linear_update_issue()
+                .issue_identifier("{{step_outputs.action-1.issue_identifier}}")
+                .status("In Progress")
+            )
+        )
+        d, _ = wf.build()
+        action_nodes = [n for n in d["nodes"] if n["type"] == "action"]
+        assert len(action_nodes) == 2
+
+        create = action_nodes[0]["data"]
+        assert create["integration"] == "linear"
+        assert create["action"] == "linear-create-issue"
+        assert create["config"]["team_key"] == "ENG"
+        assert create["config"]["title_template"] == "{{incident.title}}"
+        assert create["config"]["priority"] == "High"
+        assert create["config"]["labels"] == "bug, infra"
+        assert create["config"]["project"] == "Reliability"
+        assert create["label"] == "Create Linear Issue"
+
+        update = action_nodes[1]["data"]
+        assert update["action"] == "linear-update-issue"
+        assert update["config"]["issue_identifier"] == "{{step_outputs.action-1.issue_identifier}}"
+        assert update["config"]["status"] == "In Progress"
+
+    def test_linear_search_and_comment_factories(self):
+        search = Action.linear_search_issues().query("db timeout").team("ENG").limit(5)
+        node = search._to_node("action-1").to_dict()
+        assert node["data"]["integration"] == "linear"
+        assert node["data"]["action"] == "linear-search-issues"
+        assert node["data"]["config"] == {"query": "db timeout", "team_key": "ENG", "limit": 5}
+
+        comment = Action.linear_add_comment().issue_identifier("ENG-123").body("update")
+        node = comment._to_node("action-2").to_dict()
+        assert node["data"]["action"] == "linear-add-comment"
+        assert node["data"]["config"] == {"issue_identifier": "ENG-123", "body_template": "update"}
+
     def test_build_without_trigger_raises(self):
         with pytest.raises(ValueError):
             Workflow("no trigger").build()
