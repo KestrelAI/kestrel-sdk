@@ -1,14 +1,18 @@
-"""SDK test suite — pure HTTP mocks via respx.
+"""SDK test suite — tests the publicly installed kestrel-workflows package.
+
+These tests use HTTP mocks via respx and verify the SDK behavior
+as a customer would experience it after `pip install kestrel-workflows`.
 
 Run::
 
-    cd sdk
-    pip install -e '.[dev]'
+    pip install kestrel-workflows  # install the public package
+    pip install pytest respx pytest-asyncio
     pytest tests -v
 
 Sections:
     TestAuth                — client construction
     TestHttpErrorMapping    — 401/404/409/5xx → typed exceptions
+    TestWorkflowActivationValidation — save allowed, activate blocked when fields missing
     TestWorkflowsCRUD       — list/get/create/update/delete/activate/pause/duplicate
     TestWorkflowsExtras     — generate, request, stats, catalog, integrations, suggestions, test
     TestExecutions          — get, cancel, wait
@@ -22,11 +26,26 @@ Sections:
 from __future__ import annotations
 
 import asyncio
+import importlib
+import os
 from typing import Any
 
 import httpx
 import pytest
 import respx
+
+import kestrel
+
+# Optionally enforce running against the installed (PyPI) package — useful when
+# release engineering wants to validate the published wheel. Off by default so
+# editable installs (`pip install -e .[dev]`) — the standard dev workflow —
+# don't have to fight the test runner.
+if os.environ.get("KESTREL_REQUIRE_INSTALLED") == "1":
+    _pkg_path = str(importlib.util.find_spec("kestrel").origin)
+    assert "site-packages" in _pkg_path or "dist-packages" in _pkg_path, (
+        f"KESTREL_REQUIRE_INSTALLED=1 but kestrel resolves to local source: {_pkg_path}\n"
+        f"Install the public package with: pip install kestrel-workflows"
+    )
 
 from kestrel import (
     AsyncKestrelClient,
@@ -736,6 +755,52 @@ class TestBuilderDSL:
         node = comment._to_node("action-2").to_dict()
         assert node["data"]["action"] == "linear-add-comment"
         assert node["data"]["config"] == {"issue_identifier": "ENG-123", "body_template": "update"}
+
+    def test_railway_actions_serialize(self):
+        wf = (
+            Workflow("railway")
+            .trigger(Trigger.railway_deployment_failed())
+            .then(
+                Action.railway_get_deployment_logs()
+                .config("deployment_id", "{{signal.deployment_id}}")
+                .label("Get Railway Logs")
+            )
+            .then(
+                Action.railway_redeploy()
+                .config("service_id", "{{signal.service_id}}")
+                .config("environment_id", "{{signal.environment_id}}")
+            )
+        )
+        d, _ = wf.build()
+        action_nodes = [n for n in d["nodes"] if n["type"] == "action"]
+        assert len(action_nodes) == 2
+
+        logs = action_nodes[0]["data"]
+        assert logs["integration"] == "railway"
+        assert logs["action"] == "railway-get-deployment-logs"
+        assert logs["config"]["deployment_id"] == "{{signal.deployment_id}}"
+        assert logs["label"] == "Get Railway Logs"
+
+        redeploy = action_nodes[1]["data"]
+        assert redeploy["action"] == "railway-redeploy"
+        assert redeploy["config"]["service_id"] == "{{signal.service_id}}"
+        assert redeploy["config"]["environment_id"] == "{{signal.environment_id}}"
+
+    def test_railway_factory_methods(self):
+        cases = {
+            "railway-get-deployment": Action.railway_get_deployment(),
+            "railway-get-deployment-logs": Action.railway_get_deployment_logs(),
+            "railway-rollback": Action.railway_rollback(),
+            "railway-redeploy": Action.railway_redeploy(),
+            "railway-restart": Action.railway_restart(),
+            "railway-list-deployments": Action.railway_list_deployments(),
+            "railway-set-variables": Action.railway_set_variables(),
+            "railway-investigate": Action.railway_investigate(),
+        }
+        for action_id, action in cases.items():
+            node = action._to_node("action-1").to_dict()
+            assert node["data"]["integration"] == "railway"
+            assert node["data"]["action"] == action_id
 
     def test_build_without_trigger_raises(self):
         with pytest.raises(ValueError):

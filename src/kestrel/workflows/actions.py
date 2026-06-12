@@ -773,6 +773,42 @@ class Action:
         return Action("vercel", "vercel-investigate")
 
     # ======================================================================
+    # Factory methods — Railway
+    # ======================================================================
+
+    @staticmethod
+    def railway_get_deployment() -> Action:
+        return Action("railway", "railway-get-deployment")
+
+    @staticmethod
+    def railway_get_deployment_logs() -> Action:
+        return Action("railway", "railway-get-deployment-logs")
+
+    @staticmethod
+    def railway_rollback() -> Action:
+        return Action("railway", "railway-rollback")
+
+    @staticmethod
+    def railway_redeploy() -> Action:
+        return Action("railway", "railway-redeploy")
+
+    @staticmethod
+    def railway_restart() -> Action:
+        return Action("railway", "railway-restart")
+
+    @staticmethod
+    def railway_list_deployments() -> Action:
+        return Action("railway", "railway-list-deployments")
+
+    @staticmethod
+    def railway_set_variables() -> Action:
+        return Action("railway", "railway-set-variables")
+
+    @staticmethod
+    def railway_investigate() -> Action:
+        return Action("railway", "railway-investigate")
+
+    # ======================================================================
     # Internal serialisation
     # ======================================================================
 

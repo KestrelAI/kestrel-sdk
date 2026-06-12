@@ -124,6 +124,20 @@ class Trigger:
         self._filters["vercel_event_types"] = list(types)
         return self
 
+    # -- Railway filters ---------------------------------------------------
+
+    def railway_events(self, *types: str) -> Trigger:
+        self._filters["railway_event_types"] = list(types)
+        return self
+
+    def railway_projects(self, *project_ids: str) -> Trigger:
+        self._filters["railway_project_ids"] = list(project_ids)
+        return self
+
+    def railway_environments(self, *environment_names: str) -> Trigger:
+        self._filters["railway_environment_names"] = list(environment_names)
+        return self
+
     # -- Request filters ---------------------------------------------------
 
     def request_categories(self, *c: str) -> Trigger:
@@ -301,6 +315,34 @@ class Trigger:
     @staticmethod
     def vercel_any() -> Trigger:
         return Trigger("vercel", "any")
+
+    # ======================================================================
+    # Factory methods — Railway
+    # ======================================================================
+
+    @staticmethod
+    def railway_deployment_failed() -> Trigger:
+        return Trigger("railway", "Deployment.failed").railway_events("Deployment.failed")
+
+    @staticmethod
+    def railway_deployment_crashed() -> Trigger:
+        return Trigger("railway", "Deployment.crashed").railway_events("Deployment.crashed")
+
+    @staticmethod
+    def railway_deployment_succeeded() -> Trigger:
+        return Trigger("railway", "Deployment.success").railway_events("Deployment.success")
+
+    @staticmethod
+    def railway_volume_alert() -> Trigger:
+        return Trigger("railway", "alert").railway_events("VolumeAlert")
+
+    @staticmethod
+    def railway_resource_alert() -> Trigger:
+        return Trigger("railway", "alert").railway_events("MonitorAlert")
+
+    @staticmethod
+    def railway_any() -> Trigger:
+        return Trigger("railway", "any")
 
     # ======================================================================
     # Factory methods — Request (Slack /kestrel-workflow)
