@@ -138,6 +138,25 @@ class Trigger:
         self._filters["railway_environment_names"] = list(environment_names)
         return self
 
+    # -- Fly.io filters ----------------------------------------------------
+
+    def fly_events(self, *types: str) -> Trigger:
+        self._filters["fly_event_types"] = list(types)
+        return self
+
+    def fly_apps(self, *app_names: str) -> Trigger:
+        self._filters["fly_app_names"] = list(app_names)
+        return self
+
+    def fly_regions(self, *regions: str) -> Trigger:
+        self._filters["fly_regions"] = list(regions)
+        return self
+
+    def fly_poll_interval(self, interval: str) -> Trigger:
+        """Set the Fly polling cadence, e.g. "1m", "5m", "15m", "30m"."""
+        self._filters["fly_poll_interval"] = interval
+        return self
+
     # -- Request filters ---------------------------------------------------
 
     def request_categories(self, *c: str) -> Trigger:
@@ -343,6 +362,30 @@ class Trigger:
     @staticmethod
     def railway_any() -> Trigger:
         return Trigger("railway", "any")
+
+    # ======================================================================
+    # Factory methods — Fly.io
+    # ======================================================================
+
+    @staticmethod
+    def flyio_machine_crashed() -> Trigger:
+        return Trigger("flyio", "machine.crashed").fly_events("machine.crashed")
+
+    @staticmethod
+    def flyio_machine_stopped() -> Trigger:
+        return Trigger("flyio", "machine.stopped").fly_events("machine.stopped")
+
+    @staticmethod
+    def flyio_machine_started() -> Trigger:
+        return Trigger("flyio", "machine.started").fly_events("machine.started")
+
+    @staticmethod
+    def flyio_app_down() -> Trigger:
+        return Trigger("flyio", "app.down").fly_events("app.down")
+
+    @staticmethod
+    def flyio_any() -> Trigger:
+        return Trigger("flyio", "any")
 
     # ======================================================================
     # Factory methods — Request (Slack /kestrel-workflow)

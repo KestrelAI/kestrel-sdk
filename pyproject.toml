@@ -3,8 +3,8 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "kestrel-workflows"
-version = "0.14.0"
+name = "kestrel-sdk"
+version = "0.15.0"
 description = "Python SDK for Kestrel Workflows"
 readme = "README.md"
 requires-python = ">=3.9"

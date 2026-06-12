@@ -802,6 +802,79 @@ class TestBuilderDSL:
             assert node["data"]["integration"] == "railway"
             assert node["data"]["action"] == action_id
 
+    def test_flyio_actions_serialize(self):
+        wf = (
+            Workflow("flyio")
+            .trigger(
+                Trigger.flyio_machine_crashed()
+                .fly_apps("my-app")
+                .fly_poll_interval("5m")
+            )
+            .then(
+                Action.flyio_get_machine_events()
+                .app_name("{{signal.app_name}}")
+                .machine_id("{{signal.machine_id}}")
+                .label("Get Machine Events")
+            )
+            .then(
+                Action.flyio_restart_machine()
+                .app_name("{{signal.app_name}}")
+                .machine_id("{{signal.machine_id}}")
+            )
+        )
+        d, tc = wf.build()
+        action_nodes = [n for n in d["nodes"] if n["type"] == "action"]
+        assert len(action_nodes) == 2
+
+        events = action_nodes[0]["data"]
+        assert events["integration"] == "flyio"
+        assert events["action"] == "flyio-get-machine-events"
+        assert events["config"]["app_name"] == "{{signal.app_name}}"
+        assert events["config"]["machine_id"] == "{{signal.machine_id}}"
+        assert events["label"] == "Get Machine Events"
+
+        restart = action_nodes[1]["data"]
+        assert restart["action"] == "flyio-restart-machine"
+        assert restart["config"]["machine_id"] == "{{signal.machine_id}}"
+
+        assert tc["source"] == "flyio"
+        assert tc["signals"][0]["filters"]["fly_app_names"] == ["my-app"]
+        assert tc["signals"][0]["filters"]["fly_poll_interval"] == "5m"
+        assert tc["signals"][0]["filters"]["fly_event_types"] == ["machine.crashed"]
+
+    def test_flyio_factory_methods(self):
+        cases = {
+            "flyio-restart-machine": Action.flyio_restart_machine(),
+            "flyio-start-machine": Action.flyio_start_machine(),
+            "flyio-stop-machine": Action.flyio_stop_machine(),
+            "flyio-suspend-machine": Action.flyio_suspend_machine(),
+            "flyio-cordon-machine": Action.flyio_cordon_machine(),
+            "flyio-uncordon-machine": Action.flyio_uncordon_machine(),
+            "flyio-get-machine": Action.flyio_get_machine(),
+            "flyio-get-machine-events": Action.flyio_get_machine_events(),
+            "flyio-list-machines": Action.flyio_list_machines(),
+            "flyio-set-secrets": Action.flyio_set_secrets(),
+            "flyio-investigate": Action.flyio_investigate(),
+        }
+        for action_id, action in cases.items():
+            node = action._to_node("action-1").to_dict()
+            assert node["data"]["integration"] == "flyio"
+            assert node["data"]["action"] == action_id
+
+    def test_flyio_trigger_factory_methods(self):
+        cases = {
+            "machine.crashed": Trigger.flyio_machine_crashed(),
+            "machine.stopped": Trigger.flyio_machine_stopped(),
+            "machine.started": Trigger.flyio_machine_started(),
+            "app.down": Trigger.flyio_app_down(),
+            "any": Trigger.flyio_any(),
+        }
+        for signal_type, trig in cases.items():
+            wf = Workflow("t").trigger(trig).then(Action.flyio_get_machine())
+            _, tc = wf.build()
+            assert tc["source"] == "flyio"
+            assert tc["signals"][0]["signal_type"] == signal_type
+
     def test_build_without_trigger_raises(self):
         with pytest.raises(ValueError):
             Workflow("no trigger").build()

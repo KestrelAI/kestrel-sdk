@@ -291,6 +291,11 @@ class Action:
     def app_name(self, name: str) -> Action:
         return self.config("app_name", name)
 
+    # -- Fly.io ------------------------------------------------------------
+
+    def machine_id(self, mid: str) -> Action:
+        return self.config("machine_id", mid)
+
     def prune(self, v: bool = True) -> Action:
         return self.config("prune", v)
 
@@ -807,6 +812,54 @@ class Action:
     @staticmethod
     def railway_investigate() -> Action:
         return Action("railway", "railway-investigate")
+
+    # ======================================================================
+    # Factory methods — Fly.io
+    # ======================================================================
+
+    @staticmethod
+    def flyio_restart_machine() -> Action:
+        return Action("flyio", "flyio-restart-machine")
+
+    @staticmethod
+    def flyio_start_machine() -> Action:
+        return Action("flyio", "flyio-start-machine")
+
+    @staticmethod
+    def flyio_stop_machine() -> Action:
+        return Action("flyio", "flyio-stop-machine")
+
+    @staticmethod
+    def flyio_suspend_machine() -> Action:
+        return Action("flyio", "flyio-suspend-machine")
+
+    @staticmethod
+    def flyio_cordon_machine() -> Action:
+        return Action("flyio", "flyio-cordon-machine")
+
+    @staticmethod
+    def flyio_uncordon_machine() -> Action:
+        return Action("flyio", "flyio-uncordon-machine")
+
+    @staticmethod
+    def flyio_get_machine() -> Action:
+        return Action("flyio", "flyio-get-machine")
+
+    @staticmethod
+    def flyio_get_machine_events() -> Action:
+        return Action("flyio", "flyio-get-machine-events")
+
+    @staticmethod
+    def flyio_list_machines() -> Action:
+        return Action("flyio", "flyio-list-machines")
+
+    @staticmethod
+    def flyio_set_secrets() -> Action:
+        return Action("flyio", "flyio-set-secrets")
+
+    @staticmethod
+    def flyio_investigate() -> Action:
+        return Action("flyio", "flyio-investigate")
 
     # ======================================================================
     # Internal serialisation
