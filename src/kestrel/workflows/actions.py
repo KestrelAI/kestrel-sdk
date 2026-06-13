@@ -386,6 +386,15 @@ class Action:
         return Action("kestrel", "kestrel-trigger-cloud-rca")
 
     @staticmethod
+    def kestrel_generate_runbook() -> Action:
+        """Distill the upstream RCA + fixes into a reusable, generalized runbook
+        document (Markdown + HTML). Requires an upstream RCA step
+        (``kestrel_trigger_rca`` or ``kestrel_trigger_cloud_rca``). Outputs
+        ``runbook``, ``runbook_markdown`` and ``runbook_html`` into the context;
+        feed ``runbook_html`` to ``confluence_publish_runbook`` to publish."""
+        return Action("kestrel", "kestrel-generate-runbook")
+
+    @staticmethod
     def kestrel_wait() -> Action:
         return Action("kestrel", "kestrel-wait")
 

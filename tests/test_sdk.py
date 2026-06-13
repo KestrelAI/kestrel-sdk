@@ -695,6 +695,42 @@ class TestBuilderDSL:
         labels = {e.get("label") for e in d["edges"]}
         assert {"approved", "rejected"} <= labels
 
+    def test_refine_approval_node(self):
+        """Approval.refine() emits a self-looping refine_approval node with
+        the approval-refine-rca action + max_rounds, and supports approved/
+        rejected branching like a normal approval gate."""
+        wf = (
+            Workflow("refine")
+            .trigger(Trigger.k8s_rollout_status())
+            .then(Action.kestrel_trigger_rca())
+            .then(Action.kestrel_generate_runbook())
+            .then(Approval.refine().max_rounds(3).message("Review"))
+            .on_approved(Action.kestrel_apply_yaml_fix())
+            .on_rejected(Action.slack_send_message().channel("ops"))
+        )
+        d, _ = wf.build()
+
+        runbook = next(n for n in d["nodes"] if n["data"].get("action") == "kestrel-generate-runbook")
+        assert runbook["type"] == "action"
+
+        gate = next(n for n in d["nodes"] if n["type"] == "refine_approval")
+        assert gate["data"]["action"] == "approval-refine-rca"
+        assert gate["data"]["max_rounds"] == 3
+        assert gate["data"]["approval_type"] == "manual"
+
+        labels = {e.get("label") for e in d["edges"]}
+        assert {"approved", "rejected"} <= labels
+
+    def test_refine_approval_defaults_and_slack(self):
+        manual = Approval.refine()._to_node("approval-1")
+        assert manual.to_dict()["data"]["max_rounds"] == 5
+
+        slack = Approval.refine("slack").channel("#oncall")._to_node("approval-2")
+        data = slack.to_dict()["data"]
+        assert data["approval_type"] == "slack"
+        assert data["config"]["channel"] == "#oncall"
+        assert slack.to_dict()["type"] == "refine_approval"
+
     def test_parallel_via_also(self):
         wf = (
             Workflow("para")
