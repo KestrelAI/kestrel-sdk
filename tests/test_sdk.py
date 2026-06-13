@@ -911,6 +911,78 @@ class TestBuilderDSL:
             assert tc["source"] == "flyio"
             assert tc["signals"][0]["signal_type"] == signal_type
 
+    def test_nebius_actions_serialize(self):
+        wf = (
+            Workflow("nebius")
+            .trigger(
+                Trigger.nebius_gpu_error()
+                .nebius_projects("project-abc")
+                .nebius_poll_interval("5m")
+            )
+            .then(
+                Action.nebius_investigate()
+                .config("query", "Analyze the GPU error")
+                .label("Investigate Nebius")
+            )
+            .then(
+                Action.nebius_scale_node_group()
+                .cluster_id("{{signal.cluster_id}}")
+                .node_group_id("{{signal.node_group_id}}")
+                .size(3)
+            )
+        )
+        d, tc = wf.build()
+        action_nodes = [n for n in d["nodes"] if n["type"] == "action"]
+        assert len(action_nodes) == 2
+
+        investigate = action_nodes[0]["data"]
+        assert investigate["integration"] == "nebius"
+        assert investigate["action"] == "nebius-investigate"
+        assert investigate["config"]["query"] == "Analyze the GPU error"
+        assert investigate["label"] == "Investigate Nebius"
+
+        scale = action_nodes[1]["data"]
+        assert scale["action"] == "nebius-scale-node-group"
+        assert scale["config"]["cluster_id"] == "{{signal.cluster_id}}"
+        assert scale["config"]["node_group_id"] == "{{signal.node_group_id}}"
+        assert scale["config"]["size"] == 3
+
+        assert tc["source"] == "nebius"
+        assert tc["signals"][0]["filters"]["nebius_project_ids"] == ["project-abc"]
+        assert tc["signals"][0]["filters"]["nebius_poll_interval"] == "5m"
+        assert tc["signals"][0]["filters"]["nebius_event_types"] == ["node.gpu_error"]
+
+    def test_nebius_factory_methods(self):
+        cases = {
+            "nebius-get-instance": Action.nebius_get_instance(),
+            "nebius-start-instance": Action.nebius_start_instance(),
+            "nebius-stop-instance": Action.nebius_stop_instance(),
+            "nebius-restart-instance": Action.nebius_restart_instance(),
+            "nebius-list-instances": Action.nebius_list_instances(),
+            "nebius-list-clusters": Action.nebius_list_clusters(),
+            "nebius-list-node-groups": Action.nebius_list_node_groups(),
+            "nebius-scale-node-group": Action.nebius_scale_node_group(),
+            "nebius-investigate": Action.nebius_investigate(),
+        }
+        for action_id, action in cases.items():
+            node = action._to_node("action-1").to_dict()
+            assert node["data"]["integration"] == "nebius"
+            assert node["data"]["action"] == action_id
+
+    def test_nebius_trigger_factory_methods(self):
+        cases = {
+            "node.gpu_error": Trigger.nebius_gpu_error(),
+            "node.maintenance_scheduled": Trigger.nebius_maintenance_scheduled(),
+            "node.not_ready": Trigger.nebius_node_not_ready(),
+            "instance.stopped": Trigger.nebius_instance_stopped(),
+            "any": Trigger.nebius_any(),
+        }
+        for signal_type, trig in cases.items():
+            wf = Workflow("t").trigger(trig).then(Action.nebius_get_instance())
+            _, tc = wf.build()
+            assert tc["source"] == "nebius"
+            assert tc["signals"][0]["signal_type"] == signal_type
+
     def test_build_without_trigger_raises(self):
         with pytest.raises(ValueError):
             Workflow("no trigger").build()

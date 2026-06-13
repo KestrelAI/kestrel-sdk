@@ -157,6 +157,25 @@ class Trigger:
         self._filters["fly_poll_interval"] = interval
         return self
 
+    # -- Nebius filters ----------------------------------------------------
+
+    def nebius_events(self, *types: str) -> Trigger:
+        self._filters["nebius_event_types"] = list(types)
+        return self
+
+    def nebius_projects(self, *project_ids: str) -> Trigger:
+        self._filters["nebius_project_ids"] = list(project_ids)
+        return self
+
+    def nebius_clusters(self, *cluster_ids: str) -> Trigger:
+        self._filters["nebius_cluster_ids"] = list(cluster_ids)
+        return self
+
+    def nebius_poll_interval(self, interval: str) -> Trigger:
+        """Set the Nebius polling cadence, e.g. "1m", "5m", "15m", "30m"."""
+        self._filters["nebius_poll_interval"] = interval
+        return self
+
     # -- Request filters ---------------------------------------------------
 
     def request_categories(self, *c: str) -> Trigger:
@@ -386,6 +405,30 @@ class Trigger:
     @staticmethod
     def flyio_any() -> Trigger:
         return Trigger("flyio", "any")
+
+    # ======================================================================
+    # Factory methods — Nebius
+    # ======================================================================
+
+    @staticmethod
+    def nebius_gpu_error() -> Trigger:
+        return Trigger("nebius", "node.gpu_error").nebius_events("node.gpu_error")
+
+    @staticmethod
+    def nebius_maintenance_scheduled() -> Trigger:
+        return Trigger("nebius", "node.maintenance_scheduled").nebius_events("node.maintenance_scheduled")
+
+    @staticmethod
+    def nebius_node_not_ready() -> Trigger:
+        return Trigger("nebius", "node.not_ready").nebius_events("node.not_ready")
+
+    @staticmethod
+    def nebius_instance_stopped() -> Trigger:
+        return Trigger("nebius", "instance.stopped").nebius_events("instance.stopped")
+
+    @staticmethod
+    def nebius_any() -> Trigger:
+        return Trigger("nebius", "any")
 
     # ======================================================================
     # Factory methods — Request (Slack /kestrel-workflow)

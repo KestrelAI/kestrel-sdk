@@ -365,6 +365,20 @@ class Action:
     def target(self, t: str) -> Action:
         return self.config("target", t)
 
+    # -- Nebius ------------------------------------------------------------
+
+    def instance_id(self, iid: str) -> Action:
+        return self.config("instance_id", iid)
+
+    def cluster_id(self, cid: str) -> Action:
+        return self.config("cluster_id", cid)
+
+    def node_group_id(self, ngid: str) -> Action:
+        return self.config("node_group_id", ngid)
+
+    def size(self, n: int) -> Action:
+        return self.config("size", n)
+
     # ======================================================================
     # Factory methods — Kestrel
     # ======================================================================
@@ -869,6 +883,46 @@ class Action:
     @staticmethod
     def flyio_investigate() -> Action:
         return Action("flyio", "flyio-investigate")
+
+    # ======================================================================
+    # Factory methods — Nebius
+    # ======================================================================
+
+    @staticmethod
+    def nebius_get_instance() -> Action:
+        return Action("nebius", "nebius-get-instance")
+
+    @staticmethod
+    def nebius_start_instance() -> Action:
+        return Action("nebius", "nebius-start-instance")
+
+    @staticmethod
+    def nebius_stop_instance() -> Action:
+        return Action("nebius", "nebius-stop-instance")
+
+    @staticmethod
+    def nebius_restart_instance() -> Action:
+        return Action("nebius", "nebius-restart-instance")
+
+    @staticmethod
+    def nebius_list_instances() -> Action:
+        return Action("nebius", "nebius-list-instances")
+
+    @staticmethod
+    def nebius_list_clusters() -> Action:
+        return Action("nebius", "nebius-list-clusters")
+
+    @staticmethod
+    def nebius_list_node_groups() -> Action:
+        return Action("nebius", "nebius-list-node-groups")
+
+    @staticmethod
+    def nebius_scale_node_group() -> Action:
+        return Action("nebius", "nebius-scale-node-group")
+
+    @staticmethod
+    def nebius_investigate() -> Action:
+        return Action("nebius", "nebius-investigate")
 
     # ======================================================================
     # Internal serialisation
