@@ -186,11 +186,6 @@ class Trigger:
         self._filters["daytona_sandbox_ids"] = list(sandbox_ids)
         return self
 
-    def daytona_poll_interval(self, interval: str) -> Trigger:
-        """Set the Daytona polling cadence, e.g. "1m", "5m", "15m", "30m"."""
-        self._filters["daytona_poll_interval"] = interval
-        return self
-
     # -- Request filters ---------------------------------------------------
 
     def request_categories(self, *c: str) -> Trigger:
