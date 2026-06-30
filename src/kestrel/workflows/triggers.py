@@ -176,6 +176,21 @@ class Trigger:
         self._filters["nebius_poll_interval"] = interval
         return self
 
+    # -- Daytona filters ---------------------------------------------------
+
+    def daytona_events(self, *types: str) -> Trigger:
+        self._filters["daytona_event_types"] = list(types)
+        return self
+
+    def daytona_sandboxes(self, *sandbox_ids: str) -> Trigger:
+        self._filters["daytona_sandbox_ids"] = list(sandbox_ids)
+        return self
+
+    def daytona_poll_interval(self, interval: str) -> Trigger:
+        """Set the Daytona polling cadence, e.g. "1m", "5m", "15m", "30m"."""
+        self._filters["daytona_poll_interval"] = interval
+        return self
+
     # -- Request filters ---------------------------------------------------
 
     def request_categories(self, *c: str) -> Trigger:
@@ -429,6 +444,38 @@ class Trigger:
     @staticmethod
     def nebius_any() -> Trigger:
         return Trigger("nebius", "any")
+
+    # ======================================================================
+    # Factory methods — Daytona
+    # ======================================================================
+
+    @staticmethod
+    def daytona_sandbox_created() -> Trigger:
+        return Trigger("daytona", "sandbox.created").daytona_events("sandbox.created")
+
+    @staticmethod
+    def daytona_sandbox_stopped() -> Trigger:
+        return Trigger("daytona", "sandbox.stopped").daytona_events("sandbox.stopped")
+
+    @staticmethod
+    def daytona_sandbox_error() -> Trigger:
+        return Trigger("daytona", "sandbox.error").daytona_events("sandbox.error")
+
+    @staticmethod
+    def daytona_sandbox_archived() -> Trigger:
+        return Trigger("daytona", "sandbox.archived").daytona_events("sandbox.archived")
+
+    @staticmethod
+    def daytona_snapshot_build_failed() -> Trigger:
+        return Trigger("daytona", "snapshot.build_failed").daytona_events("snapshot.build_failed")
+
+    @staticmethod
+    def daytona_volume_error() -> Trigger:
+        return Trigger("daytona", "volume.error").daytona_events("volume.error")
+
+    @staticmethod
+    def daytona_any() -> Trigger:
+        return Trigger("daytona", "any")
 
     # ======================================================================
     # Factory methods — Request (Slack /kestrel-workflow)
