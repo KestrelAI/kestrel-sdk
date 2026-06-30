@@ -206,6 +206,26 @@ class Trigger:
         self._filters["supabase_poll_interval"] = interval
         return self
 
+    # -- PlanetScale filters ------------------------------------------------
+
+    def planetscale_events(self, *types: str) -> Trigger:
+        self._filters["planetscale_event_types"] = list(types)
+        return self
+
+    def planetscale_databases(self, *databases: str) -> Trigger:
+        self._filters["planetscale_databases"] = list(databases)
+        return self
+
+    def planetscale_branches(self, *branches: str) -> Trigger:
+        self._filters["planetscale_branches"] = list(branches)
+        return self
+
+    def planetscale_poll_interval(self, interval: str) -> Trigger:
+        """Set the poll cadence for the poll-based PlanetScale backup triggers
+        (one of "1m", "5m", "15m", "30m")."""
+        self._filters["planetscale_poll_interval"] = interval
+        return self
+
     # -- Request filters ---------------------------------------------------
 
     def request_categories(self, *c: str) -> Trigger:
@@ -527,6 +547,70 @@ class Trigger:
     @staticmethod
     def supabase_any() -> Trigger:
         return Trigger("supabase", "any")
+
+    # ======================================================================
+    # Factory methods — PlanetScale
+    # ======================================================================
+
+    @staticmethod
+    def planetscale_deploy_request_opened() -> Trigger:
+        return Trigger("planetscale", "deploy_request.opened").planetscale_events("deploy_request.opened")
+
+    @staticmethod
+    def planetscale_deploy_request_queued() -> Trigger:
+        return Trigger("planetscale", "deploy_request.queued").planetscale_events("deploy_request.queued")
+
+    @staticmethod
+    def planetscale_deploy_request_in_progress() -> Trigger:
+        return Trigger("planetscale", "deploy_request.in_progress").planetscale_events("deploy_request.in_progress")
+
+    @staticmethod
+    def planetscale_deploy_request_schema_applied() -> Trigger:
+        return Trigger("planetscale", "deploy_request.schema_applied").planetscale_events("deploy_request.schema_applied")
+
+    @staticmethod
+    def planetscale_deploy_request_errored() -> Trigger:
+        return Trigger("planetscale", "deploy_request.errored").planetscale_events("deploy_request.errored")
+
+    @staticmethod
+    def planetscale_deploy_request_reverted() -> Trigger:
+        return Trigger("planetscale", "deploy_request.reverted").planetscale_events("deploy_request.reverted")
+
+    @staticmethod
+    def planetscale_deploy_request_closed() -> Trigger:
+        return Trigger("planetscale", "deploy_request.closed").planetscale_events("deploy_request.closed")
+
+    @staticmethod
+    def planetscale_branch_ready() -> Trigger:
+        return Trigger("planetscale", "branch.ready").planetscale_events("branch.ready")
+
+    @staticmethod
+    def planetscale_branch_anomaly() -> Trigger:
+        return Trigger("planetscale", "branch.anomaly").planetscale_events("branch.anomaly")
+
+    @staticmethod
+    def planetscale_branch_primary_promoted() -> Trigger:
+        return Trigger("planetscale", "branch.primary_promoted").planetscale_events("branch.primary_promoted")
+
+    @staticmethod
+    def planetscale_branch_sleeping() -> Trigger:
+        return Trigger("planetscale", "branch.sleeping").planetscale_events("branch.sleeping")
+
+    @staticmethod
+    def planetscale_storage_threshold() -> Trigger:
+        return Trigger("planetscale", "cluster.storage").planetscale_events("cluster.storage", "keyspace.storage")
+
+    @staticmethod
+    def planetscale_backup_completed() -> Trigger:
+        return Trigger("planetscale", "backup.completed").planetscale_events("backup.completed")
+
+    @staticmethod
+    def planetscale_backup_failed() -> Trigger:
+        return Trigger("planetscale", "backup.failed").planetscale_events("backup.failed")
+
+    @staticmethod
+    def planetscale_any() -> Trigger:
+        return Trigger("planetscale", "any")
 
     # ======================================================================
     # Factory methods — Request (Slack /kestrel-workflow)

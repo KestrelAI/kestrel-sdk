@@ -1069,6 +1069,94 @@ class Action:
         return Action("supabase", "supabase-investigate")
 
     # ======================================================================
+    # Factory methods — PlanetScale
+    # ======================================================================
+
+    @staticmethod
+    def planetscale_list_databases() -> Action:
+        return Action("planetscale", "planetscale-list-databases")
+
+    @staticmethod
+    def planetscale_get_database() -> Action:
+        return Action("planetscale", "planetscale-get-database")
+
+    @staticmethod
+    def planetscale_list_branches() -> Action:
+        return Action("planetscale", "planetscale-list-branches")
+
+    @staticmethod
+    def planetscale_get_branch() -> Action:
+        return Action("planetscale", "planetscale-get-branch")
+
+    @staticmethod
+    def planetscale_create_branch() -> Action:
+        return Action("planetscale", "planetscale-create-branch")
+
+    @staticmethod
+    def planetscale_delete_branch() -> Action:
+        return Action("planetscale", "planetscale-delete-branch")
+
+    @staticmethod
+    def planetscale_promote_branch() -> Action:
+        return Action("planetscale", "planetscale-promote-branch")
+
+    @staticmethod
+    def planetscale_set_safe_migrations() -> Action:
+        return Action("planetscale", "planetscale-set-safe-migrations")
+
+    @staticmethod
+    def planetscale_list_deploy_requests() -> Action:
+        return Action("planetscale", "planetscale-list-deploy-requests")
+
+    @staticmethod
+    def planetscale_get_deploy_request() -> Action:
+        return Action("planetscale", "planetscale-get-deploy-request")
+
+    @staticmethod
+    def planetscale_create_deploy_request() -> Action:
+        return Action("planetscale", "planetscale-create-deploy-request")
+
+    @staticmethod
+    def planetscale_deploy_deploy_request() -> Action:
+        return Action("planetscale", "planetscale-deploy-deploy-request")
+
+    @staticmethod
+    def planetscale_revert_deploy_request() -> Action:
+        return Action("planetscale", "planetscale-revert-deploy-request")
+
+    @staticmethod
+    def planetscale_close_deploy_request() -> Action:
+        return Action("planetscale", "planetscale-close-deploy-request")
+
+    @staticmethod
+    def planetscale_approve_deploy_request() -> Action:
+        return Action("planetscale", "planetscale-approve-deploy-request")
+
+    @staticmethod
+    def planetscale_list_backups() -> Action:
+        return Action("planetscale", "planetscale-list-backups")
+
+    @staticmethod
+    def planetscale_create_backup() -> Action:
+        return Action("planetscale", "planetscale-create-backup")
+
+    @staticmethod
+    def planetscale_list_passwords() -> Action:
+        return Action("planetscale", "planetscale-list-passwords")
+
+    @staticmethod
+    def planetscale_create_password() -> Action:
+        return Action("planetscale", "planetscale-create-password")
+
+    @staticmethod
+    def planetscale_delete_password() -> Action:
+        return Action("planetscale", "planetscale-delete-password")
+
+    @staticmethod
+    def planetscale_investigate() -> Action:
+        return Action("planetscale", "planetscale-investigate")
+
+    # ======================================================================
     # Internal serialisation
     # ======================================================================
 
