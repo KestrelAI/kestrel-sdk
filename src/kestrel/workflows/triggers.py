@@ -186,6 +186,26 @@ class Trigger:
         self._filters["daytona_sandbox_ids"] = list(sandbox_ids)
         return self
 
+    # -- Supabase filters --------------------------------------------------
+
+    def supabase_events(self, *types: str) -> Trigger:
+        self._filters["supabase_event_types"] = list(types)
+        return self
+
+    def supabase_projects(self, *project_refs: str) -> Trigger:
+        self._filters["supabase_project_refs"] = list(project_refs)
+        return self
+
+    def supabase_tables(self, *tables: str) -> Trigger:
+        self._filters["supabase_tables"] = list(tables)
+        return self
+
+    def supabase_poll_interval(self, interval: str) -> Trigger:
+        """Set the poll cadence for control-plane Supabase triggers (one of
+        "1m", "5m", "15m", "30m")."""
+        self._filters["supabase_poll_interval"] = interval
+        return self
+
     # -- Request filters ---------------------------------------------------
 
     def request_categories(self, *c: str) -> Trigger:
@@ -471,6 +491,42 @@ class Trigger:
     @staticmethod
     def daytona_any() -> Trigger:
         return Trigger("daytona", "any")
+
+    # ======================================================================
+    # Factory methods — Supabase
+    # ======================================================================
+
+    @staticmethod
+    def supabase_project_health_degraded() -> Trigger:
+        return Trigger("supabase", "project.health_degraded").supabase_events("project.health_degraded")
+
+    @staticmethod
+    def supabase_backup_failed() -> Trigger:
+        return Trigger("supabase", "backup.failed").supabase_events("backup.failed")
+
+    @staticmethod
+    def supabase_replica_unhealthy() -> Trigger:
+        return Trigger("supabase", "replica.unhealthy").supabase_events("replica.unhealthy")
+
+    @staticmethod
+    def supabase_usage_threshold() -> Trigger:
+        return Trigger("supabase", "usage.threshold").supabase_events("usage.threshold")
+
+    @staticmethod
+    def supabase_branch_created() -> Trigger:
+        return Trigger("supabase", "branch.created").supabase_events("branch.created")
+
+    @staticmethod
+    def supabase_branch_merge_failed() -> Trigger:
+        return Trigger("supabase", "branch.merge_failed").supabase_events("branch.merge_failed")
+
+    @staticmethod
+    def supabase_db_row_event() -> Trigger:
+        return Trigger("supabase", "db.row_event").supabase_events("db.row_event")
+
+    @staticmethod
+    def supabase_any() -> Trigger:
+        return Trigger("supabase", "any")
 
     # ======================================================================
     # Factory methods — Request (Slack /kestrel-workflow)

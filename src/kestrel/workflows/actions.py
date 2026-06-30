@@ -985,6 +985,90 @@ class Action:
         return Action("daytona", "daytona-investigate")
 
     # ======================================================================
+    # Factory methods — Supabase
+    # ======================================================================
+
+    @staticmethod
+    def supabase_list_projects() -> Action:
+        return Action("supabase", "supabase-list-projects")
+
+    @staticmethod
+    def supabase_get_project() -> Action:
+        return Action("supabase", "supabase-get-project")
+
+    @staticmethod
+    def supabase_get_project_health() -> Action:
+        return Action("supabase", "supabase-get-project-health")
+
+    @staticmethod
+    def supabase_pause_project() -> Action:
+        return Action("supabase", "supabase-pause-project")
+
+    @staticmethod
+    def supabase_restore_project() -> Action:
+        return Action("supabase", "supabase-restore-project")
+
+    @staticmethod
+    def supabase_list_branches() -> Action:
+        return Action("supabase", "supabase-list-branches")
+
+    @staticmethod
+    def supabase_create_branch() -> Action:
+        return Action("supabase", "supabase-create-branch")
+
+    @staticmethod
+    def supabase_get_branch() -> Action:
+        return Action("supabase", "supabase-get-branch")
+
+    @staticmethod
+    def supabase_merge_branch() -> Action:
+        return Action("supabase", "supabase-merge-branch")
+
+    @staticmethod
+    def supabase_reset_branch() -> Action:
+        return Action("supabase", "supabase-reset-branch")
+
+    @staticmethod
+    def supabase_delete_branch() -> Action:
+        return Action("supabase", "supabase-delete-branch")
+
+    @staticmethod
+    def supabase_list_backups() -> Action:
+        return Action("supabase", "supabase-list-backups")
+
+    @staticmethod
+    def supabase_create_restore_point() -> Action:
+        return Action("supabase", "supabase-create-restore-point")
+
+    @staticmethod
+    def supabase_restore_pitr() -> Action:
+        return Action("supabase", "supabase-restore-pitr")
+
+    @staticmethod
+    def supabase_setup_read_replica() -> Action:
+        return Action("supabase", "supabase-setup-read-replica")
+
+    @staticmethod
+    def supabase_remove_read_replica() -> Action:
+        return Action("supabase", "supabase-remove-read-replica")
+
+    @staticmethod
+    def supabase_get_network_restrictions() -> Action:
+        return Action("supabase", "supabase-get-network-restrictions")
+
+    @staticmethod
+    def supabase_update_network_restrictions() -> Action:
+        return Action("supabase", "supabase-update-network-restrictions")
+
+    @staticmethod
+    def supabase_list_api_keys() -> Action:
+        return Action("supabase", "supabase-list-api-keys")
+
+    @staticmethod
+    def supabase_investigate() -> Action:
+        return Action("supabase", "supabase-investigate")
+
+    # ======================================================================
     # Internal serialisation
     # ======================================================================
 
