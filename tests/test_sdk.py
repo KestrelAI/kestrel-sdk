@@ -989,7 +989,6 @@ class TestBuilderDSL:
             .trigger(
                 Trigger.daytona_sandbox_error()
                 .daytona_sandboxes("sandbox-abc")
-                .daytona_poll_interval("5m")
             )
             .then(Action.daytona_get_sandbox())
             .then(Action.daytona_investigate())
@@ -1000,7 +999,6 @@ class TestBuilderDSL:
         assert node_map["daytona-investigate"]["action"] == "daytona-investigate"
         assert tc["source"] == "daytona"
         assert tc["signals"][0]["filters"]["daytona_sandbox_ids"] == ["sandbox-abc"]
-        assert tc["signals"][0]["filters"]["daytona_poll_interval"] == "5m"
         assert tc["signals"][0]["filters"]["daytona_event_types"] == ["sandbox.error"]
 
     def test_daytona_factory_methods(self):
