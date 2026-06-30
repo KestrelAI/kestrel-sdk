@@ -925,6 +925,66 @@ class Action:
         return Action("nebius", "nebius-investigate")
 
     # ======================================================================
+    # Factory methods — Daytona
+    # ======================================================================
+
+    @staticmethod
+    def daytona_list_sandboxes() -> Action:
+        return Action("daytona", "daytona-list-sandboxes")
+
+    @staticmethod
+    def daytona_get_sandbox() -> Action:
+        return Action("daytona", "daytona-get-sandbox")
+
+    @staticmethod
+    def daytona_start_sandbox() -> Action:
+        return Action("daytona", "daytona-start-sandbox")
+
+    @staticmethod
+    def daytona_stop_sandbox() -> Action:
+        return Action("daytona", "daytona-stop-sandbox")
+
+    @staticmethod
+    def daytona_archive_sandbox() -> Action:
+        return Action("daytona", "daytona-archive-sandbox")
+
+    @staticmethod
+    def daytona_delete_sandbox() -> Action:
+        return Action("daytona", "daytona-delete-sandbox")
+
+    @staticmethod
+    def daytona_run_command() -> Action:
+        return Action("daytona", "daytona-run-command")
+
+    @staticmethod
+    def daytona_set_auto_stop() -> Action:
+        return Action("daytona", "daytona-set-auto-stop")
+
+    @staticmethod
+    def daytona_list_snapshots() -> Action:
+        return Action("daytona", "daytona-list-snapshots")
+
+    @staticmethod
+    def daytona_create_snapshot() -> Action:
+        return Action("daytona", "daytona-create-snapshot")
+
+    @staticmethod
+    def daytona_delete_snapshot() -> Action:
+        return Action("daytona", "daytona-delete-snapshot")
+
+    @staticmethod
+    def daytona_list_volumes() -> Action:
+        return Action("daytona", "daytona-list-volumes")
+
+    @staticmethod
+    def daytona_get_volume() -> Action:
+        return Action("daytona", "daytona-get-volume")
+
+    @staticmethod
+    def daytona_investigate() -> Action:
+        return Action("daytona", "daytona-investigate")
+
+    # ======================================================================
     # Internal serialisation
     # ======================================================================
 

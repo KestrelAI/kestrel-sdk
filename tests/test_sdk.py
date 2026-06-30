@@ -983,6 +983,64 @@ class TestBuilderDSL:
             assert tc["source"] == "nebius"
             assert tc["signals"][0]["signal_type"] == signal_type
 
+    def test_daytona_actions_serialize(self):
+        wf = (
+            Workflow("daytona")
+            .trigger(
+                Trigger.daytona_sandbox_error()
+                .daytona_sandboxes("sandbox-abc")
+                .daytona_poll_interval("5m")
+            )
+            .then(Action.daytona_get_sandbox())
+            .then(Action.daytona_investigate())
+        )
+        d, tc = wf.build()
+        node_map = {n["data"].get("action"): n["data"] for n in d["nodes"] if n["data"].get("integration") == "daytona"}
+        assert node_map["daytona-get-sandbox"]["integration"] == "daytona"
+        assert node_map["daytona-investigate"]["action"] == "daytona-investigate"
+        assert tc["source"] == "daytona"
+        assert tc["signals"][0]["filters"]["daytona_sandbox_ids"] == ["sandbox-abc"]
+        assert tc["signals"][0]["filters"]["daytona_poll_interval"] == "5m"
+        assert tc["signals"][0]["filters"]["daytona_event_types"] == ["sandbox.error"]
+
+    def test_daytona_factory_methods(self):
+        cases = {
+            "daytona-list-sandboxes": Action.daytona_list_sandboxes(),
+            "daytona-get-sandbox": Action.daytona_get_sandbox(),
+            "daytona-start-sandbox": Action.daytona_start_sandbox(),
+            "daytona-stop-sandbox": Action.daytona_stop_sandbox(),
+            "daytona-archive-sandbox": Action.daytona_archive_sandbox(),
+            "daytona-delete-sandbox": Action.daytona_delete_sandbox(),
+            "daytona-run-command": Action.daytona_run_command(),
+            "daytona-set-auto-stop": Action.daytona_set_auto_stop(),
+            "daytona-list-snapshots": Action.daytona_list_snapshots(),
+            "daytona-create-snapshot": Action.daytona_create_snapshot(),
+            "daytona-delete-snapshot": Action.daytona_delete_snapshot(),
+            "daytona-list-volumes": Action.daytona_list_volumes(),
+            "daytona-get-volume": Action.daytona_get_volume(),
+            "daytona-investigate": Action.daytona_investigate(),
+        }
+        for action_id, action in cases.items():
+            node = action._to_node("action-1").to_dict()
+            assert node["data"]["integration"] == "daytona"
+            assert node["data"]["action"] == action_id
+
+    def test_daytona_trigger_factory_methods(self):
+        cases = {
+            "sandbox.created": Trigger.daytona_sandbox_created(),
+            "sandbox.stopped": Trigger.daytona_sandbox_stopped(),
+            "sandbox.error": Trigger.daytona_sandbox_error(),
+            "sandbox.archived": Trigger.daytona_sandbox_archived(),
+            "snapshot.build_failed": Trigger.daytona_snapshot_build_failed(),
+            "volume.error": Trigger.daytona_volume_error(),
+            "any": Trigger.daytona_any(),
+        }
+        for signal_type, trig in cases.items():
+            wf = Workflow("t").trigger(trig).then(Action.daytona_get_sandbox())
+            _, tc = wf.build()
+            assert tc["source"] == "daytona"
+            assert tc["signals"][0]["signal_type"] == signal_type
+
     def test_build_without_trigger_raises(self):
         with pytest.raises(ValueError):
             Workflow("no trigger").build()
