@@ -1157,6 +1157,74 @@ class Action:
         return Action("planetscale", "planetscale-investigate")
 
     # ======================================================================
+    # Factory methods — Neon
+    # ======================================================================
+
+    @staticmethod
+    def neon_list_projects() -> Action:
+        return Action("neon", "neon-list-projects")
+
+    @staticmethod
+    def neon_get_project() -> Action:
+        return Action("neon", "neon-get-project")
+
+    @staticmethod
+    def neon_list_branches() -> Action:
+        return Action("neon", "neon-list-branches")
+
+    @staticmethod
+    def neon_get_branch() -> Action:
+        return Action("neon", "neon-get-branch")
+
+    @staticmethod
+    def neon_create_branch() -> Action:
+        return Action("neon", "neon-create-branch")
+
+    @staticmethod
+    def neon_delete_branch() -> Action:
+        return Action("neon", "neon-delete-branch")
+
+    @staticmethod
+    def neon_reset_branch() -> Action:
+        return Action("neon", "neon-reset-branch")
+
+    @staticmethod
+    def neon_list_endpoints() -> Action:
+        return Action("neon", "neon-list-endpoints")
+
+    @staticmethod
+    def neon_create_endpoint() -> Action:
+        return Action("neon", "neon-create-endpoint")
+
+    @staticmethod
+    def neon_delete_endpoint() -> Action:
+        return Action("neon", "neon-delete-endpoint")
+
+    @staticmethod
+    def neon_suspend_compute() -> Action:
+        return Action("neon", "neon-suspend-compute")
+
+    @staticmethod
+    def neon_start_compute() -> Action:
+        return Action("neon", "neon-start-compute")
+
+    @staticmethod
+    def neon_set_autoscaling() -> Action:
+        return Action("neon", "neon-set-autoscaling")
+
+    @staticmethod
+    def neon_rotate_credentials() -> Action:
+        return Action("neon", "neon-rotate-credentials")
+
+    @staticmethod
+    def neon_get_connection_uri() -> Action:
+        return Action("neon", "neon-get-connection-uri")
+
+    @staticmethod
+    def neon_investigate() -> Action:
+        return Action("neon", "neon-investigate")
+
+    # ======================================================================
     # Internal serialisation
     # ======================================================================
 

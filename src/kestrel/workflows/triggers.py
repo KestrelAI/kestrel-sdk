@@ -226,6 +226,30 @@ class Trigger:
         self._filters["planetscale_poll_interval"] = interval
         return self
 
+    # -- Neon filters ------------------------------------------------------
+
+    def neon_events(self, *types: str) -> Trigger:
+        self._filters["neon_event_types"] = list(types)
+        return self
+
+    def neon_projects(self, *project_ids: str) -> Trigger:
+        self._filters["neon_project_ids"] = list(project_ids)
+        return self
+
+    def neon_branches(self, *branch_ids: str) -> Trigger:
+        self._filters["neon_branch_ids"] = list(branch_ids)
+        return self
+
+    def neon_usage_threshold(self, percent: int) -> Trigger:
+        self._filters["neon_usage_threshold_percent"] = percent
+        return self
+
+    def neon_poll_interval(self, interval: str) -> Trigger:
+        """Set the poll cadence for the poll-based Neon triggers (one of "1m",
+        "5m", "15m", "30m"). Neon has no control-plane webhooks."""
+        self._filters["neon_poll_interval"] = interval
+        return self
+
     # -- Request filters ---------------------------------------------------
 
     def request_categories(self, *c: str) -> Trigger:
@@ -611,6 +635,38 @@ class Trigger:
     @staticmethod
     def planetscale_any() -> Trigger:
         return Trigger("planetscale", "any")
+
+    # ======================================================================
+    # Factory methods — Neon
+    # ======================================================================
+
+    @staticmethod
+    def neon_branch_created() -> Trigger:
+        return Trigger("neon", "branch.created").neon_events("branch.created")
+
+    @staticmethod
+    def neon_branch_ready() -> Trigger:
+        return Trigger("neon", "branch.ready").neon_events("branch.ready")
+
+    @staticmethod
+    def neon_operation_failed() -> Trigger:
+        return Trigger("neon", "operation.failed").neon_events("operation.failed")
+
+    @staticmethod
+    def neon_compute_suspended() -> Trigger:
+        return Trigger("neon", "compute.suspended").neon_events("compute.suspended")
+
+    @staticmethod
+    def neon_compute_active() -> Trigger:
+        return Trigger("neon", "compute.active").neon_events("compute.active")
+
+    @staticmethod
+    def neon_usage_threshold() -> Trigger:
+        return Trigger("neon", "usage.threshold").neon_events("usage.threshold")
+
+    @staticmethod
+    def neon_any() -> Trigger:
+        return Trigger("neon", "any")
 
     # ======================================================================
     # Factory methods — Request (Slack /kestrel-workflow)
