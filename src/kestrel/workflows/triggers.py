@@ -250,6 +250,36 @@ class Trigger:
         self._filters["neon_poll_interval"] = interval
         return self
 
+    # -- ClickHouse filters ------------------------------------------------
+
+    def clickhouse_events(self, *types: str) -> Trigger:
+        self._filters["clickhouse_event_types"] = list(types)
+        return self
+
+    def clickhouse_services(self, *service_ids: str) -> Trigger:
+        self._filters["clickhouse_service_ids"] = list(service_ids)
+        return self
+
+    def clickhouse_error_threshold(self, count: int) -> Trigger:
+        """Set the number of new failed queries/inserts per poll window at or
+        above which a query.error_spike trigger fires (default 10)."""
+        self._filters["clickhouse_error_threshold"] = count
+        return self
+
+    def clickhouse_usage_threshold(self, percent: int, budget_chc: float) -> Trigger:
+        """Fire usage.threshold when month-to-date spend crosses percent of the
+        monthly budget (in ClickHouse Credits)."""
+        self._filters["clickhouse_usage_threshold_percent"] = percent
+        self._filters["clickhouse_usage_budget_chc"] = budget_chc
+        return self
+
+    def clickhouse_poll_interval(self, interval: str) -> Trigger:
+        """Set the poll cadence for the poll-based ClickHouse triggers (one of
+        "1m", "5m", "15m", "30m"). ClickHouse Cloud has no control-plane
+        webhooks."""
+        self._filters["clickhouse_poll_interval"] = interval
+        return self
+
     # -- Request filters ---------------------------------------------------
 
     def request_categories(self, *c: str) -> Trigger:
@@ -667,6 +697,50 @@ class Trigger:
     @staticmethod
     def neon_any() -> Trigger:
         return Trigger("neon", "any")
+
+    # ======================================================================
+    # Factory methods — ClickHouse
+    # ======================================================================
+
+    @staticmethod
+    def clickhouse_service_state_changed() -> Trigger:
+        return Trigger("clickhouse", "service.state_changed").clickhouse_events("service.state_changed")
+
+    @staticmethod
+    def clickhouse_service_idle() -> Trigger:
+        return Trigger("clickhouse", "service.idle").clickhouse_events("service.idle")
+
+    @staticmethod
+    def clickhouse_service_scaled() -> Trigger:
+        return Trigger("clickhouse", "service.scaled").clickhouse_events("service.scaled")
+
+    @staticmethod
+    def clickhouse_version_changed() -> Trigger:
+        return Trigger("clickhouse", "service.version_changed").clickhouse_events("service.version_changed")
+
+    @staticmethod
+    def clickhouse_backup_completed() -> Trigger:
+        return Trigger("clickhouse", "backup.completed").clickhouse_events("backup.completed")
+
+    @staticmethod
+    def clickhouse_backup_failed() -> Trigger:
+        return Trigger("clickhouse", "backup.failed").clickhouse_events("backup.failed")
+
+    @staticmethod
+    def clickhouse_query_error_spike() -> Trigger:
+        return Trigger("clickhouse", "query.error_spike").clickhouse_events("query.error_spike")
+
+    @staticmethod
+    def clickhouse_clickpipe_failed() -> Trigger:
+        return Trigger("clickhouse", "clickpipe.failed").clickhouse_events("clickpipe.failed")
+
+    @staticmethod
+    def clickhouse_usage_threshold_crossed() -> Trigger:
+        return Trigger("clickhouse", "usage.threshold").clickhouse_events("usage.threshold")
+
+    @staticmethod
+    def clickhouse_any() -> Trigger:
+        return Trigger("clickhouse", "any")
 
     # ======================================================================
     # Factory methods — Request (Slack /kestrel-workflow)

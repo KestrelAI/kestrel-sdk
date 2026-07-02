@@ -15,9 +15,14 @@ action-specific parameters::
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Union
 
 from .types import _Node
+
+# A numeric config value that may be a literal number or a template string
+# (e.g. "{{request.replicas}}"). The server resolves template strings to numbers
+# at execution time, so numeric setters accept both.
+Number = Union[int, float, str]
 
 
 class Action:
@@ -80,7 +85,7 @@ class Action:
     def dry_run_first(self, v: bool = True) -> Action:
         return self.config("dry_run_first", v)
 
-    def duration(self, n: int) -> Action:
+    def duration(self, n: Number) -> Action:
         return self.config("duration", n)
 
     def unit(self, u: str) -> Action:
@@ -137,7 +142,7 @@ class Action:
     def require_approval(self, v: bool = True) -> Action:
         return self.config("require_approval", v)
 
-    def max_iterations(self, n: int) -> Action:
+    def max_iterations(self, n: Number) -> Action:
         return self.config("max_iterations", n)
 
     def workload_name(self, wn: str) -> Action:
@@ -194,7 +199,7 @@ class Action:
     def project_name(self, name: str) -> Action:
         return self.config("project", name)
 
-    def limit(self, n: int) -> Action:
+    def limit(self, n: Number) -> Action:
         return self.config("limit", n)
 
     # -- Confluence --------------------------------------------------------
@@ -228,16 +233,16 @@ class Action:
     def inputs(self, kv: dict[str, str]) -> Action:
         return self.config("inputs", kv)
 
-    def timeout_minutes(self, n: int) -> Action:
+    def timeout_minutes(self, n: Number) -> Action:
         return self.config("timeout_minutes", n)
 
-    def poll_interval_seconds(self, n: int) -> Action:
+    def poll_interval_seconds(self, n: Number) -> Action:
         return self.config("poll_interval_seconds", n)
 
     def path(self, p: str) -> Action:
         return self.config("path", p)
 
-    def max_turns(self, n: int) -> Action:
+    def max_turns(self, n: Number) -> Action:
         return self.config("max_turns", n)
 
     # -- Datadog -----------------------------------------------------------
@@ -248,10 +253,10 @@ class Action:
     def monitor_type(self, mt: str) -> Action:
         return self.config("type", mt)
 
-    def critical_threshold(self, v: float) -> Action:
+    def critical_threshold(self, v: Number) -> Action:
         return self.config("critical_threshold", v)
 
-    def warning_threshold(self, v: float) -> Action:
+    def warning_threshold(self, v: Number) -> Action:
         return self.config("warning_threshold", v)
 
     def alert_type(self, at: str) -> Action:
@@ -266,7 +271,7 @@ class Action:
     def scope(self, s: str) -> Action:
         return self.config("scope", s)
 
-    def duration_minutes(self, n: int) -> Action:
+    def duration_minutes(self, n: Number) -> Action:
         return self.config("duration_minutes", n)
 
     def monitor_id(self, mid: str) -> Action:
@@ -299,7 +304,7 @@ class Action:
     def prune(self, v: bool = True) -> Action:
         return self.config("prune", v)
 
-    def wait_timeout_seconds(self, n: int) -> Action:
+    def wait_timeout_seconds(self, n: Number) -> Action:
         return self.config("wait_timeout_seconds", n)
 
     # -- AWS Cost ----------------------------------------------------------
@@ -319,10 +324,10 @@ class Action:
     def filter_service(self, s: str) -> Action:
         return self.config("filter_service", s)
 
-    def lookback_days(self, n: int) -> Action:
+    def lookback_days(self, n: Number) -> Action:
         return self.config("lookback_days", n)
 
-    def min_impact(self, n: float) -> Action:
+    def min_impact(self, n: Number) -> Action:
         return self.config("min_impact", n)
 
     def forecast_days(self, d: str) -> Action:
@@ -342,7 +347,7 @@ class Action:
     def focus_area(self, fa: str) -> Action:
         return self.config("focus_area", fa)
 
-    def limit(self, n: int) -> Action:
+    def limit(self, n: Number) -> Action:
         return self.config("limit", n)
 
     def date_from(self, d: str) -> Action:
@@ -376,7 +381,7 @@ class Action:
     def node_group_id(self, ngid: str) -> Action:
         return self.config("node_group_id", ngid)
 
-    def size(self, n: int) -> Action:
+    def size(self, n: Number) -> Action:
         return self.config("size", n)
 
     # ======================================================================
@@ -1223,6 +1228,98 @@ class Action:
     @staticmethod
     def neon_investigate() -> Action:
         return Action("neon", "neon-investigate")
+
+    # ======================================================================
+    # Factory methods — ClickHouse
+    # ======================================================================
+
+    @staticmethod
+    def clickhouse_list_services() -> Action:
+        return Action("clickhouse", "clickhouse-list-services")
+
+    @staticmethod
+    def clickhouse_get_service() -> Action:
+        return Action("clickhouse", "clickhouse-get-service")
+
+    @staticmethod
+    def clickhouse_create_service() -> Action:
+        return Action("clickhouse", "clickhouse-create-service")
+
+    @staticmethod
+    def clickhouse_start_service() -> Action:
+        return Action("clickhouse", "clickhouse-start-service")
+
+    @staticmethod
+    def clickhouse_stop_service() -> Action:
+        return Action("clickhouse", "clickhouse-stop-service")
+
+    @staticmethod
+    def clickhouse_update_autoscaling() -> Action:
+        return Action("clickhouse", "clickhouse-update-autoscaling")
+
+    @staticmethod
+    def clickhouse_update_ip_access() -> Action:
+        return Action("clickhouse", "clickhouse-update-ip-access")
+
+    @staticmethod
+    def clickhouse_list_backups() -> Action:
+        return Action("clickhouse", "clickhouse-list-backups")
+
+    @staticmethod
+    def clickhouse_get_backup() -> Action:
+        return Action("clickhouse", "clickhouse-get-backup")
+
+    @staticmethod
+    def clickhouse_update_backup_config() -> Action:
+        return Action("clickhouse", "clickhouse-update-backup-config")
+
+    @staticmethod
+    def clickhouse_restore_backup() -> Action:
+        return Action("clickhouse", "clickhouse-restore-backup")
+
+    @staticmethod
+    def clickhouse_delete_service() -> Action:
+        return Action("clickhouse", "clickhouse-delete-service")
+
+    @staticmethod
+    def clickhouse_list_api_keys() -> Action:
+        return Action("clickhouse", "clickhouse-list-api-keys")
+
+    @staticmethod
+    def clickhouse_get_service_metrics() -> Action:
+        return Action("clickhouse", "clickhouse-get-service-metrics")
+
+    @staticmethod
+    def clickhouse_get_usage_cost() -> Action:
+        return Action("clickhouse", "clickhouse-get-usage-cost")
+
+    @staticmethod
+    def clickhouse_list_clickpipes() -> Action:
+        return Action("clickhouse", "clickhouse-list-clickpipes")
+
+    @staticmethod
+    def clickhouse_get_clickpipe() -> Action:
+        return Action("clickhouse", "clickhouse-get-clickpipe")
+
+    @staticmethod
+    def clickhouse_start_clickpipe() -> Action:
+        return Action("clickhouse", "clickhouse-start-clickpipe")
+
+    @staticmethod
+    def clickhouse_stop_clickpipe() -> Action:
+        return Action("clickhouse", "clickhouse-stop-clickpipe")
+
+    @staticmethod
+    def clickhouse_resync_clickpipe() -> Action:
+        return Action("clickhouse", "clickhouse-resync-clickpipe")
+
+    @staticmethod
+    def clickhouse_scale_clickpipe() -> Action:
+        return Action("clickhouse", "clickhouse-scale-clickpipe")
+
+    @staticmethod
+    def clickhouse_investigate() -> Action:
+        return Action("clickhouse", "clickhouse-investigate")
 
     # ======================================================================
     # Internal serialisation
