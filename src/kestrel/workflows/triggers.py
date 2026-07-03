@@ -273,6 +273,24 @@ class Trigger:
         self._filters["clickhouse_usage_budget_chc"] = budget_chc
         return self
 
+    def clickhouse_parts_threshold(self, count: int) -> Trigger:
+        """Set the max part-count-for-partition at or above which a
+        service.too_many_parts trigger fires (default 3000)."""
+        self._filters["clickhouse_parts_threshold"] = count
+        return self
+
+    def clickhouse_failed_mutations_threshold(self, count: int) -> Trigger:
+        """Set the number of new failed mutations per poll window at or above
+        which a service.failed_mutations trigger fires (default 1)."""
+        self._filters["clickhouse_failed_mutations_threshold"] = count
+        return self
+
+    def clickhouse_concurrency_threshold(self, count: int) -> Trigger:
+        """Set the concurrent running query count at or above which a
+        service.high_query_concurrency trigger fires (default 1000)."""
+        self._filters["clickhouse_concurrency_threshold"] = count
+        return self
+
     def clickhouse_poll_interval(self, interval: str) -> Trigger:
         """Set the poll cadence for the poll-based ClickHouse triggers (one of
         "1m", "5m", "15m", "30m"). ClickHouse Cloud has no control-plane
@@ -737,6 +755,18 @@ class Trigger:
     @staticmethod
     def clickhouse_usage_threshold_crossed() -> Trigger:
         return Trigger("clickhouse", "usage.threshold").clickhouse_events("usage.threshold")
+
+    @staticmethod
+    def clickhouse_too_many_parts() -> Trigger:
+        return Trigger("clickhouse", "service.too_many_parts").clickhouse_events("service.too_many_parts")
+
+    @staticmethod
+    def clickhouse_failed_mutations() -> Trigger:
+        return Trigger("clickhouse", "service.failed_mutations").clickhouse_events("service.failed_mutations")
+
+    @staticmethod
+    def clickhouse_high_query_concurrency() -> Trigger:
+        return Trigger("clickhouse", "service.high_query_concurrency").clickhouse_events("service.high_query_concurrency")
 
     @staticmethod
     def clickhouse_any() -> Trigger:

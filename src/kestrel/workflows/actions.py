@@ -1318,6 +1318,70 @@ class Action:
         return Action("clickhouse", "clickhouse-scale-clickpipe")
 
     @staticmethod
+    def clickhouse_get_scaling_schedule() -> Action:
+        return Action("clickhouse", "clickhouse-get-scaling-schedule")
+
+    @staticmethod
+    def clickhouse_set_scaling_schedule() -> Action:
+        return Action("clickhouse", "clickhouse-set-scaling-schedule")
+
+    @staticmethod
+    def clickhouse_clear_scaling_schedule() -> Action:
+        return Action("clickhouse", "clickhouse-clear-scaling-schedule")
+
+    @staticmethod
+    def clickhouse_get_upgrade_window() -> Action:
+        return Action("clickhouse", "clickhouse-get-upgrade-window")
+
+    @staticmethod
+    def clickhouse_set_upgrade_window() -> Action:
+        return Action("clickhouse", "clickhouse-set-upgrade-window")
+
+    @staticmethod
+    def clickhouse_clear_upgrade_window() -> Action:
+        return Action("clickhouse", "clickhouse-clear-upgrade-window")
+
+    @staticmethod
+    def clickhouse_get_settings() -> Action:
+        return Action("clickhouse", "clickhouse-get-settings")
+
+    @staticmethod
+    def clickhouse_update_setting() -> Action:
+        return Action("clickhouse", "clickhouse-update-setting")
+
+    @staticmethod
+    def clickhouse_reset_setting() -> Action:
+        return Action("clickhouse", "clickhouse-reset-setting")
+
+    @staticmethod
+    def clickhouse_get_query_endpoint() -> Action:
+        return Action("clickhouse", "clickhouse-get-query-endpoint")
+
+    @staticmethod
+    def clickhouse_upsert_query_endpoint() -> Action:
+        return Action("clickhouse", "clickhouse-upsert-query-endpoint")
+
+    @staticmethod
+    def clickhouse_delete_query_endpoint() -> Action:
+        return Action("clickhouse", "clickhouse-delete-query-endpoint")
+
+    @staticmethod
+    def clickhouse_list_members() -> Action:
+        return Action("clickhouse", "clickhouse-list-members")
+
+    @staticmethod
+    def clickhouse_remove_member() -> Action:
+        return Action("clickhouse", "clickhouse-remove-member")
+
+    @staticmethod
+    def clickhouse_list_roles() -> Action:
+        return Action("clickhouse", "clickhouse-list-roles")
+
+    @staticmethod
+    def clickhouse_list_activity() -> Action:
+        return Action("clickhouse", "clickhouse-list-activity")
+
+    @staticmethod
     def clickhouse_investigate() -> Action:
         return Action("clickhouse", "clickhouse-investigate")
 
