@@ -820,6 +820,99 @@ class TestBuilderDSL:
         assert tc["source"] == "request"
         assert tc["signals"][0]["filters"]["request_categories"] == ["terraform"]
 
+    def test_pulumi_actions(self):
+        """Pulumi Cloud factories emit the right integration, action IDs, and
+        config keys."""
+        run = (
+            Action.pulumi_run_deployment()
+            .stack("my-project/prod")
+            .operation("update")
+        )
+        assert run._integration == "pulumi"
+        assert run._action == "pulumi-run-deployment"
+        assert run._config["stack"] == "my-project/prod"
+        assert run._config["operation"] == "update"
+
+        wait = (
+            Action.pulumi_wait_for_deployment()
+            .stack("{{signal.stack}}")
+            .deployment_id("{{step_outputs.action-1.deployment_id}}")
+            .timeout_minutes(45)
+            .poll_interval_seconds(20)
+        )
+        assert wait._action == "pulumi-wait-for-deployment"
+        assert wait._config["deployment_id"] == "{{step_outputs.action-1.deployment_id}}"
+        assert wait._config["timeout_minutes"] == 45
+        assert wait._config["poll_interval_seconds"] == 20
+
+        upd = Action.pulumi_get_update().stack("p/s").update_version("42")
+        assert upd._action == "pulumi-get-update"
+        assert upd._config["version"] == "42"
+
+        tag = (
+            Action.pulumi_set_stack_tag()
+            .stack("p/s")
+            .tag_name("kestrel:quarantined")
+            .tag_value("true")
+        )
+        assert tag._action == "pulumi-set-stack-tag"
+        assert tag._config["tag_name"] == "kestrel:quarantined"
+        assert tag._config["tag_value"] == "true"
+
+        investigate = Action.pulumi_investigate().query("why did the update fail?").stack("p/s").max_iterations(5)
+        assert investigate._action == "pulumi-investigate"
+        assert investigate._config["query"] == "why did the update fail?"
+        assert investigate._config["max_iterations"] == 5
+
+        for factory, action_id in [
+            (Action.pulumi_list_stacks, "pulumi-list-stacks"),
+            (Action.pulumi_get_stack, "pulumi-get-stack"),
+            (Action.pulumi_list_updates, "pulumi-list-updates"),
+            (Action.pulumi_get_deployment, "pulumi-get-deployment"),
+            (Action.pulumi_cancel_deployment, "pulumi-cancel-deployment"),
+            (Action.pulumi_pause_deployments, "pulumi-pause-deployments"),
+            (Action.pulumi_resume_deployments, "pulumi-resume-deployments"),
+            (Action.pulumi_get_stack_outputs, "pulumi-get-stack-outputs"),
+            (Action.pulumi_get_drift, "pulumi-get-drift"),
+            (Action.pulumi_delete_stack_tag, "pulumi-delete-stack-tag"),
+        ]:
+            assert factory()._action == action_id
+
+    def test_pulumi_triggers(self):
+        t = (
+            Trigger.pulumi_update_failed()
+            .pulumi_stacks("my-project/prod")
+            .pulumi_projects("my-project")
+        )
+        _, tc = Workflow("p").trigger(t).build()
+        assert tc["source"] == "pulumi"
+        f = tc["signals"][0]["filters"]
+        assert f["pulumi_event_types"] == ["update_failed"]
+        assert f["pulumi_stacks"] == ["my-project/prod"]
+        assert f["pulumi_projects"] == ["my-project"]
+
+        for factory, event in [
+            (Trigger.pulumi_update_succeeded, "update_succeeded"),
+            (Trigger.pulumi_preview_failed, "preview_failed"),
+            (Trigger.pulumi_destroy_succeeded, "destroy_succeeded"),
+            (Trigger.pulumi_deployment_started, "deployment_started"),
+            (Trigger.pulumi_deployment_succeeded, "deployment_succeeded"),
+            (Trigger.pulumi_deployment_failed, "deployment_failed"),
+            (Trigger.pulumi_drift_detected, "drift_detected"),
+            (Trigger.pulumi_policy_violation, "policy_violation_mandatory"),
+            (Trigger.pulumi_stack_created, "stack_created"),
+            (Trigger.pulumi_stack_deleted, "stack_deleted"),
+        ]:
+            trig = factory()
+            assert trig._filters["pulumi_event_types"] == [event]
+
+        _, tc = Workflow("any").trigger(Trigger.pulumi_any()).build()
+        assert tc["source"] == "pulumi"
+
+        _, tc = Workflow("req").trigger(Trigger.request_pulumi()).build()
+        assert tc["source"] == "request"
+        assert tc["signals"][0]["filters"]["request_categories"] == ["pulumi"]
+
     def test_jenkins_actions_serialize(self):
         """Jenkins factories emit the right integration, action IDs, and
         config keys."""

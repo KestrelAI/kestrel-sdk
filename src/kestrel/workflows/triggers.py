@@ -306,6 +306,21 @@ class Trigger:
         self._filters["terraform_run_statuses"] = list(statuses)
         return self
 
+    # -- Pulumi Cloud filters --------------------------------------------------
+
+    def pulumi_events(self, *types: str) -> Trigger:
+        self._filters["pulumi_event_types"] = list(types)
+        return self
+
+    def pulumi_stacks(self, *stacks: str) -> Trigger:
+        """Restrict to specific stacks by project/stack reference (or bare stack name)."""
+        self._filters["pulumi_stacks"] = list(stacks)
+        return self
+
+    def pulumi_projects(self, *projects: str) -> Trigger:
+        self._filters["pulumi_projects"] = list(projects)
+        return self
+
     # -- Jenkins filters -----------------------------------------------------
 
     def jenkins_events(self, *types: str) -> Trigger:
@@ -850,6 +865,60 @@ class Trigger:
         return Trigger("terraform", "any")
 
     # ======================================================================
+    # Factory methods — Pulumi Cloud
+    # ======================================================================
+
+    @staticmethod
+    def pulumi_update_succeeded() -> Trigger:
+        return Trigger("pulumi", "update_succeeded").pulumi_events("update_succeeded")
+
+    @staticmethod
+    def pulumi_update_failed() -> Trigger:
+        return Trigger("pulumi", "update_failed").pulumi_events("update_failed")
+
+    @staticmethod
+    def pulumi_preview_failed() -> Trigger:
+        return Trigger("pulumi", "preview_failed").pulumi_events("preview_failed")
+
+    @staticmethod
+    def pulumi_destroy_succeeded() -> Trigger:
+        return Trigger("pulumi", "destroy_succeeded").pulumi_events("destroy_succeeded")
+
+    @staticmethod
+    def pulumi_deployment_started() -> Trigger:
+        return Trigger("pulumi", "deployment_started").pulumi_events("deployment_started")
+
+    @staticmethod
+    def pulumi_deployment_succeeded() -> Trigger:
+        return Trigger("pulumi", "deployment_succeeded").pulumi_events("deployment_succeeded")
+
+    @staticmethod
+    def pulumi_deployment_failed() -> Trigger:
+        return Trigger("pulumi", "deployment_failed").pulumi_events("deployment_failed")
+
+    @staticmethod
+    def pulumi_drift_detected() -> Trigger:
+        """A scheduled drift run detected drift between the stack's state and real infrastructure."""
+        return Trigger("pulumi", "drift_detected").pulumi_events("drift_detected")
+
+    @staticmethod
+    def pulumi_policy_violation() -> Trigger:
+        """A mandatory policy pack blocked an update."""
+        return Trigger("pulumi", "policy_violation_mandatory").pulumi_events("policy_violation_mandatory")
+
+    @staticmethod
+    def pulumi_stack_created() -> Trigger:
+        return Trigger("pulumi", "stack_created").pulumi_events("stack_created")
+
+    @staticmethod
+    def pulumi_stack_deleted() -> Trigger:
+        return Trigger("pulumi", "stack_deleted").pulumi_events("stack_deleted")
+
+    @staticmethod
+    def pulumi_any() -> Trigger:
+        return Trigger("pulumi", "any")
+
+    # ======================================================================
     # Factory methods — Jenkins
     # ======================================================================
 
@@ -958,6 +1027,10 @@ class Trigger:
     @staticmethod
     def request_terraform() -> Trigger:
         return Trigger("request", "any").filter(request_categories=["terraform"])
+
+    @staticmethod
+    def request_pulumi() -> Trigger:
+        return Trigger("request", "any").filter(request_categories=["pulumi"])
 
     @staticmethod
     def request_jenkins() -> Trigger:

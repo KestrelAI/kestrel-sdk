@@ -443,6 +443,26 @@ class Action:
     def sensitive(self, v: bool = True) -> Action:
         return self.config("sensitive", v)
 
+    # -- Pulumi Cloud ----------------------------------------------------------
+    # (operation and deployment_id helpers are shared with other integrations
+    # above; they set the same config keys Pulumi actions expect.)
+
+    def stack(self, s: str) -> Action:
+        """Pulumi stack reference in project/stack format (e.g.
+        "my-project/prod"). Defaults to "{{signal.stack}}" when triggered by
+        a Pulumi Cloud event."""
+        return self.config("stack", s)
+
+    def update_version(self, v: str) -> Action:
+        """Pulumi update version number (blank for the latest update)."""
+        return self.config("version", v)
+
+    def tag_name(self, name: str) -> Action:
+        return self.config("tag_name", name)
+
+    def tag_value(self, value: str) -> Action:
+        return self.config("tag_value", value)
+
     # -- Jenkins -------------------------------------------------------------
 
     def job(self, j: str) -> Action:
@@ -1632,6 +1652,75 @@ class Action:
     @staticmethod
     def terraform_investigate() -> Action:
         return Action("terraform", "terraform-investigate")
+
+    # ======================================================================
+    # Factory methods — Pulumi Cloud
+    # ======================================================================
+
+    @staticmethod
+    def pulumi_list_stacks() -> Action:
+        return Action("pulumi", "pulumi-list-stacks")
+
+    @staticmethod
+    def pulumi_get_stack() -> Action:
+        return Action("pulumi", "pulumi-get-stack")
+
+    @staticmethod
+    def pulumi_list_updates() -> Action:
+        return Action("pulumi", "pulumi-list-updates")
+
+    @staticmethod
+    def pulumi_get_update() -> Action:
+        return Action("pulumi", "pulumi-get-update")
+
+    @staticmethod
+    def pulumi_run_deployment() -> Action:
+        """Start a Pulumi Deployments run (update, preview, refresh, destroy,
+        detect-drift, or remediate-drift) on a stack. Gate destructive
+        operations behind an approval."""
+        return Action("pulumi", "pulumi-run-deployment")
+
+    @staticmethod
+    def pulumi_get_deployment() -> Action:
+        return Action("pulumi", "pulumi-get-deployment")
+
+    @staticmethod
+    def pulumi_wait_for_deployment() -> Action:
+        """Wait for a Pulumi deployment to reach a terminal state."""
+        return Action("pulumi", "pulumi-wait-for-deployment")
+
+    @staticmethod
+    def pulumi_cancel_deployment() -> Action:
+        return Action("pulumi", "pulumi-cancel-deployment")
+
+    @staticmethod
+    def pulumi_pause_deployments() -> Action:
+        """Pause a stack's deployment queue (e.g. during an incident)."""
+        return Action("pulumi", "pulumi-pause-deployments")
+
+    @staticmethod
+    def pulumi_resume_deployments() -> Action:
+        return Action("pulumi", "pulumi-resume-deployments")
+
+    @staticmethod
+    def pulumi_get_stack_outputs() -> Action:
+        return Action("pulumi", "pulumi-get-stack-outputs")
+
+    @staticmethod
+    def pulumi_get_drift() -> Action:
+        return Action("pulumi", "pulumi-get-drift")
+
+    @staticmethod
+    def pulumi_set_stack_tag() -> Action:
+        return Action("pulumi", "pulumi-set-stack-tag")
+
+    @staticmethod
+    def pulumi_delete_stack_tag() -> Action:
+        return Action("pulumi", "pulumi-delete-stack-tag")
+
+    @staticmethod
+    def pulumi_investigate() -> Action:
+        return Action("pulumi", "pulumi-investigate")
 
     # ======================================================================
     # Factory methods — Jenkins
