@@ -279,12 +279,6 @@ class Trigger:
         self._filters["clickhouse_parts_threshold"] = count
         return self
 
-    def clickhouse_failed_mutations_threshold(self, count: int) -> Trigger:
-        """Set the number of new failed mutations per poll window at or above
-        which a service.failed_mutations trigger fires (default 1)."""
-        self._filters["clickhouse_failed_mutations_threshold"] = count
-        return self
-
     def clickhouse_concurrency_threshold(self, count: int) -> Trigger:
         """Set the concurrent running query count at or above which a
         service.high_query_concurrency trigger fires (default 1000)."""
@@ -759,10 +753,6 @@ class Trigger:
     @staticmethod
     def clickhouse_too_many_parts() -> Trigger:
         return Trigger("clickhouse", "service.too_many_parts").clickhouse_events("service.too_many_parts")
-
-    @staticmethod
-    def clickhouse_failed_mutations() -> Trigger:
-        return Trigger("clickhouse", "service.failed_mutations").clickhouse_events("service.failed_mutations")
 
     @staticmethod
     def clickhouse_high_query_concurrency() -> Trigger:
