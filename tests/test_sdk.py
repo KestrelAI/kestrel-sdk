@@ -671,6 +671,61 @@ class TestBuilderDSL:
         assert f["cluster_ids"] == ["c1"]
         assert f["namespaces"] == ["ns1"]
 
+    def test_rollouts_and_flux_actions(self):
+        """Argo Rollouts and Flux CD factories emit the right integration,
+        action IDs, and config keys."""
+        promote = Action.rollouts_promote().cluster_id("c1").rollout_name("my-app").ns("prod").full()
+        assert promote._integration == "argo-rollouts"
+        assert promote._action == "rollouts-promote"
+        assert promote._config["cluster_id"] == "c1"
+        assert promote._config["rollout_name"] == "my-app"
+        assert promote._config["namespace"] == "prod"
+        assert promote._config["full"] is True
+
+        undo = Action.rollouts_undo().rollout_name("my-app").revision(3)
+        assert undo._action == "rollouts-undo"
+        assert undo._config["revision"] == 3
+
+        wait = Action.rollouts_wait_healthy().rollout_name("my-app").wait_timeout_seconds(120)
+        assert wait._config["wait_timeout_seconds"] == 120
+
+        reconcile = (
+            Action.flux_reconcile()
+            .cluster_id("c1")
+            .resource_kind("HelmRelease")
+            .resource_name("podinfo")
+            .ns("flux-system")
+            .with_source()
+        )
+        assert reconcile._integration == "fluxcd"
+        assert reconcile._action == "flux-reconcile"
+        assert reconcile._config["resource_kind"] == "HelmRelease"
+        assert reconcile._config["resource_name"] == "podinfo"
+        assert reconcile._config["with_source"] is True
+
+        for factory, action_id in [
+            (Action.rollouts_abort, "rollouts-abort"),
+            (Action.rollouts_retry, "rollouts-retry"),
+            (Action.rollouts_pause, "rollouts-pause"),
+            (Action.rollouts_resume, "rollouts-resume"),
+            (Action.rollouts_restart, "rollouts-restart"),
+            (Action.rollouts_get_status, "rollouts-get-status"),
+            (Action.flux_suspend, "flux-suspend"),
+            (Action.flux_resume, "flux-resume"),
+            (Action.flux_get_status, "flux-get-status"),
+            (Action.flux_wait_ready, "flux-wait-ready"),
+            (Action.flux_get_events, "flux-get-events"),
+        ]:
+            assert factory()._action == action_id
+
+    def test_rollouts_and_flux_request_triggers(self):
+        _, t = Workflow("r").trigger(Trigger.request_argo_rollouts()).build()
+        assert t["source"] == "request"
+        assert t["signals"][0]["filters"]["request_categories"] == ["argo-rollouts"]
+
+        _, t = Workflow("f").trigger(Trigger.request_fluxcd()).build()
+        assert t["signals"][0]["filters"]["request_categories"] == ["fluxcd"]
+
     def test_condition_branching(self):
         wf = (
             Workflow("cond")

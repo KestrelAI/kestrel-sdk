@@ -296,6 +296,28 @@ class Action:
     def app_name(self, name: str) -> Action:
         return self.config("app_name", name)
 
+    # -- Argo Rollouts -----------------------------------------------------
+
+    def rollout_name(self, name: str) -> Action:
+        return self.config("rollout_name", name)
+
+    def full(self, v: bool = True) -> Action:
+        return self.config("full", v)
+
+    def revision(self, n: Number) -> Action:
+        return self.config("revision", n)
+
+    # -- Flux CD -----------------------------------------------------------
+
+    def resource_kind(self, kind: str) -> Action:
+        return self.config("resource_kind", kind)
+
+    def resource_name(self, name: str) -> Action:
+        return self.config("resource_name", name)
+
+    def with_source(self, v: bool = True) -> Action:
+        return self.config("with_source", v)
+
     # -- Fly.io ------------------------------------------------------------
 
     def machine_id(self, mid: str) -> Action:
@@ -708,6 +730,74 @@ class Action:
     @staticmethod
     def argocd_find_app() -> Action:
         return Action("argocd", "argocd-find-app")
+
+    # ======================================================================
+    # Factory methods — Argo Rollouts
+    # ======================================================================
+
+    @staticmethod
+    def rollouts_promote() -> Action:
+        return Action("argo-rollouts", "rollouts-promote")
+
+    @staticmethod
+    def rollouts_abort() -> Action:
+        return Action("argo-rollouts", "rollouts-abort")
+
+    @staticmethod
+    def rollouts_retry() -> Action:
+        return Action("argo-rollouts", "rollouts-retry")
+
+    @staticmethod
+    def rollouts_undo() -> Action:
+        return Action("argo-rollouts", "rollouts-undo")
+
+    @staticmethod
+    def rollouts_pause() -> Action:
+        return Action("argo-rollouts", "rollouts-pause")
+
+    @staticmethod
+    def rollouts_resume() -> Action:
+        return Action("argo-rollouts", "rollouts-resume")
+
+    @staticmethod
+    def rollouts_restart() -> Action:
+        return Action("argo-rollouts", "rollouts-restart")
+
+    @staticmethod
+    def rollouts_get_status() -> Action:
+        return Action("argo-rollouts", "rollouts-get-status")
+
+    @staticmethod
+    def rollouts_wait_healthy() -> Action:
+        return Action("argo-rollouts", "rollouts-wait-healthy")
+
+    # ======================================================================
+    # Factory methods — Flux CD
+    # ======================================================================
+
+    @staticmethod
+    def flux_reconcile() -> Action:
+        return Action("fluxcd", "flux-reconcile")
+
+    @staticmethod
+    def flux_suspend() -> Action:
+        return Action("fluxcd", "flux-suspend")
+
+    @staticmethod
+    def flux_resume() -> Action:
+        return Action("fluxcd", "flux-resume")
+
+    @staticmethod
+    def flux_get_status() -> Action:
+        return Action("fluxcd", "flux-get-status")
+
+    @staticmethod
+    def flux_wait_ready() -> Action:
+        return Action("fluxcd", "flux-wait-ready")
+
+    @staticmethod
+    def flux_get_events() -> Action:
+        return Action("fluxcd", "flux-get-events")
 
     # ======================================================================
     # Factory methods — Helm

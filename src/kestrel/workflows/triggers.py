@@ -768,47 +768,55 @@ class Trigger:
 
     @staticmethod
     def request_kubernetes() -> Trigger:
-        return Trigger("request", "any").config(request_categories=["k8s"])
+        return Trigger("request", "any").filter(request_categories=["k8s"])
 
     @staticmethod
     def request_cloud() -> Trigger:
-        return Trigger("request", "any").config(request_categories=["cloud"])
+        return Trigger("request", "any").filter(request_categories=["cloud"])
 
     @staticmethod
     def request_cloudflare() -> Trigger:
-        return Trigger("request", "any").config(request_categories=["cloudflare"])
+        return Trigger("request", "any").filter(request_categories=["cloudflare"])
 
     @staticmethod
     def request_pagerduty() -> Trigger:
-        return Trigger("request", "any").config(request_categories=["pagerduty"])
+        return Trigger("request", "any").filter(request_categories=["pagerduty"])
 
     @staticmethod
     def request_datadog() -> Trigger:
-        return Trigger("request", "any").config(request_categories=["datadog"])
+        return Trigger("request", "any").filter(request_categories=["datadog"])
 
     @staticmethod
     def request_argocd() -> Trigger:
-        return Trigger("request", "any").config(request_categories=["argocd"])
+        return Trigger("request", "any").filter(request_categories=["argocd"])
+
+    @staticmethod
+    def request_argo_rollouts() -> Trigger:
+        return Trigger("request", "any").filter(request_categories=["argo-rollouts"])
+
+    @staticmethod
+    def request_fluxcd() -> Trigger:
+        return Trigger("request", "any").filter(request_categories=["fluxcd"])
 
     @staticmethod
     def request_github() -> Trigger:
-        return Trigger("request", "any").config(request_categories=["github"])
+        return Trigger("request", "any").filter(request_categories=["github"])
 
     @staticmethod
     def request_gitlab() -> Trigger:
-        return Trigger("request", "any").config(request_categories=["gitlab"])
+        return Trigger("request", "any").filter(request_categories=["gitlab"])
 
     @staticmethod
     def request_helm() -> Trigger:
-        return Trigger("request", "any").config(request_categories=["helm"])
+        return Trigger("request", "any").filter(request_categories=["helm"])
 
     @staticmethod
     def request_vercel() -> Trigger:
-        return Trigger("request", "any").config(request_categories=["vercel"])
+        return Trigger("request", "any").filter(request_categories=["vercel"])
 
     @staticmethod
     def request_general() -> Trigger:
-        return Trigger("request", "any").config(request_categories=["general"])
+        return Trigger("request", "any").filter(request_categories=["general"])
 
     # ======================================================================
     # Factory methods — Custom Webhook
