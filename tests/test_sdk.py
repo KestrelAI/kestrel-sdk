@@ -726,6 +726,252 @@ class TestBuilderDSL:
         _, t = Workflow("f").trigger(Trigger.request_fluxcd()).build()
         assert t["signals"][0]["filters"]["request_categories"] == ["fluxcd"]
 
+    def test_terraform_actions(self):
+        """Terraform Cloud factories emit the right integration, action IDs,
+        and config keys."""
+        create = (
+            Action.terraform_create_run()
+            .workspace("prod-vpc")
+            .run_message("Queued by Kestrel")
+            .auto_apply()
+        )
+        assert create._integration == "terraform"
+        assert create._action == "terraform-create-run"
+        assert create._config["workspace"] == "prod-vpc"
+        assert create._config["message"] == "Queued by Kestrel"
+        assert create._config["auto_apply"] is True
+
+        apply = Action.terraform_apply_run().workspace("prod-vpc").run_id("run-abc").comment("ok")
+        assert apply._action == "terraform-apply-run"
+        assert apply._config["run_id"] == "run-abc"
+        assert apply._config["comment"] == "ok"
+
+        setvar = (
+            Action.terraform_set_variable()
+            .workspace("prod-vpc")
+            .key("instance_count")
+            .value("3")
+            .category("terraform")
+            .hcl(False)
+            .sensitive()
+        )
+        assert setvar._action == "terraform-set-variable"
+        assert setvar._config["key"] == "instance_count"
+        assert setvar._config["value"] == "3"
+        assert setvar._config["category"] == "terraform"
+        assert setvar._config["hcl"] is False
+        assert setvar._config["sensitive"] is True
+
+        wait = Action.terraform_wait_for_run().workspace("w").run_id("run-1").timeout_minutes(30)
+        assert wait._action == "terraform-wait-for-run"
+        assert wait._config["timeout_minutes"] == 30
+
+        lock = Action.terraform_lock_workspace().workspace("w").reason("freeze")
+        assert lock._config["reason"] == "freeze"
+
+        investigate = Action.terraform_investigate().query("why?").workspace("w").max_iterations(5)
+        assert investigate._action == "terraform-investigate"
+        assert investigate._config["query"] == "why?"
+        assert investigate._config["max_iterations"] == 5
+
+        for factory, action_id in [
+            (Action.terraform_list_workspaces, "terraform-list-workspaces"),
+            (Action.terraform_get_workspace, "terraform-get-workspace"),
+            (Action.terraform_unlock_workspace, "terraform-unlock-workspace"),
+            (Action.terraform_force_unlock_workspace, "terraform-force-unlock-workspace"),
+            (Action.terraform_list_runs, "terraform-list-runs"),
+            (Action.terraform_get_run, "terraform-get-run"),
+            (Action.terraform_create_destroy_run, "terraform-create-destroy-run"),
+            (Action.terraform_discard_run, "terraform-discard-run"),
+            (Action.terraform_cancel_run, "terraform-cancel-run"),
+            (Action.terraform_get_state_outputs, "terraform-get-state-outputs"),
+            (Action.terraform_list_variables, "terraform-list-variables"),
+            (Action.terraform_get_drift, "terraform-get-drift"),
+        ]:
+            assert factory()._action == action_id
+
+    def test_terraform_triggers(self):
+        t = (
+            Trigger.terraform_run_errored()
+            .terraform_workspaces("prod-vpc", "prod-eks")
+            .terraform_run_statuses("errored")
+        )
+        _, tc = Workflow("t").trigger(t).build()
+        assert tc["source"] == "terraform"
+        f = tc["signals"][0]["filters"]
+        assert f["terraform_event_types"] == ["run:errored"]
+        assert f["terraform_workspaces"] == ["prod-vpc", "prod-eks"]
+        assert f["terraform_run_statuses"] == ["errored"]
+
+        for factory, event in [
+            (Trigger.terraform_run_created, "run:created"),
+            (Trigger.terraform_run_needs_attention, "run:needs_attention"),
+            (Trigger.terraform_run_completed, "run:completed"),
+            (Trigger.terraform_drift_detected, "assessment:drifted"),
+            (Trigger.terraform_check_failed, "assessment:check_failure"),
+        ]:
+            trig = factory()
+            assert trig._filters["terraform_event_types"] == [event]
+
+        _, tc = Workflow("any").trigger(Trigger.terraform_any()).build()
+        assert tc["source"] == "terraform"
+
+        _, tc = Workflow("req").trigger(Trigger.request_terraform()).build()
+        assert tc["source"] == "request"
+        assert tc["signals"][0]["filters"]["request_categories"] == ["terraform"]
+
+    def test_jenkins_actions_serialize(self):
+        """Jenkins factories emit the right integration, action IDs, and
+        config keys."""
+        trigger = (
+            Action.jenkins_trigger_build()
+            .job("platform/deploy-api")
+            .parameters("ENV=staging\nVERSION={{step_outputs.action-1.tag}}")
+        )
+        assert trigger._integration == "jenkins"
+        assert trigger._action == "jenkins-trigger-build"
+        assert trigger._config["job"] == "platform/deploy-api"
+        assert "ENV=staging" in trigger._config["parameters"]
+
+        wait = (
+            Action.jenkins_wait_for_build()
+            .job("platform/deploy-api")
+            .build_number("{{signal.build_number}}")
+            .timeout_minutes(45)
+            .poll_interval_seconds(20)
+        )
+        assert wait._action == "jenkins-wait-for-build"
+        assert wait._config["build_number"] == "{{signal.build_number}}"
+        assert wait._config["timeout_minutes"] == 45
+        assert wait._config["poll_interval_seconds"] == 20
+
+        log = Action.jenkins_get_console_log().job("j").max_lines(500)
+        assert log._action == "jenkins-get-console-log"
+        assert log._config["max_lines"] == 500
+
+        investigate = Action.jenkins_investigate().query("why did the build fail?").job("j").max_iterations(5)
+        assert investigate._action == "jenkins-investigate"
+        assert investigate._config["query"] == "why did the build fail?"
+        assert investigate._config["max_iterations"] == 5
+
+        for factory, action_id in [
+            (Action.jenkins_get_build_status, "jenkins-get-build-status"),
+            (Action.jenkins_stop_build, "jenkins-stop-build"),
+        ]:
+            assert factory()._action == action_id
+
+    def test_jenkins_triggers(self):
+        t = (
+            Trigger.jenkins_build_failed()
+            .jenkins_jobs("platform/deploy-api", "nightly")
+        )
+        _, tc = Workflow("j").trigger(t).build()
+        assert tc["source"] == "jenkins"
+        f = tc["signals"][0]["filters"]
+        assert f["jenkins_event_types"] == ["build.completed"]
+        assert f["jenkins_build_statuses"] == ["FAILURE"]
+        assert f["jenkins_jobs"] == ["platform/deploy-api", "nightly"]
+
+        for factory, event, statuses in [
+            (Trigger.jenkins_build_unstable, "build.completed", ["UNSTABLE"]),
+            (Trigger.jenkins_build_succeeded, "build.completed", ["SUCCESS"]),
+            (Trigger.jenkins_build_completed, "build.completed", ["*"]),
+        ]:
+            trig = factory()
+            assert trig._filters["jenkins_event_types"] == [event]
+            assert trig._filters["jenkins_build_statuses"] == statuses
+
+        started = Trigger.jenkins_build_started()
+        assert started._filters["jenkins_event_types"] == ["build.started"]
+        assert "jenkins_build_statuses" not in started._filters
+
+        _, tc = Workflow("any").trigger(Trigger.jenkins_any()).build()
+        assert tc["source"] == "jenkins"
+
+        _, tc = Workflow("req").trigger(Trigger.request_jenkins()).build()
+        assert tc["source"] == "request"
+        assert tc["signals"][0]["filters"]["request_categories"] == ["jenkins"]
+
+    def test_circleci_actions_serialize(self):
+        """CircleCI factories emit the right integration, action IDs, and
+        config keys."""
+        trigger = (
+            Action.circleci_trigger_pipeline()
+            .project_slug("gh/org/repo")
+            .branch("main")
+            .parameters("deploy_env=staging")
+        )
+        assert trigger._integration == "circleci"
+        assert trigger._action == "circleci-trigger-pipeline"
+        assert trigger._config["project_slug"] == "gh/org/repo"
+        assert trigger._config["branch"] == "main"
+
+        tag_trigger = Action.circleci_trigger_pipeline().project_slug("gh/org/repo").tag("v1.2.3")
+        assert tag_trigger._config["tag"] == "v1.2.3"
+
+        wait = (
+            Action.circleci_wait_for_pipeline()
+            .project_slug("gh/org/repo")
+            .pipeline_id("{{signal.pipeline_id}}")
+            .timeout_minutes(45)
+        )
+        assert wait._action == "circleci-wait-for-pipeline"
+        assert wait._config["pipeline_id"] == "{{signal.pipeline_id}}"
+        assert wait._config["timeout_minutes"] == 45
+
+        rerun = Action.circleci_rerun_workflow().workflow_id("{{signal.workflow_id}}").from_failed()
+        assert rerun._action == "circleci-rerun-workflow"
+        assert rerun._config["workflow_id"] == "{{signal.workflow_id}}"
+        assert rerun._config["from_failed"] is True
+
+        approve = Action.circleci_approve_job().workflow_id("wf-1").job_name("hold-deploy")
+        assert approve._action == "circleci-approve-job"
+        assert approve._config["job_name"] == "hold-deploy"
+
+        tests = Action.circleci_get_job_tests().project_slug("gh/org/repo").job_number("{{signal.job_number}}")
+        assert tests._action == "circleci-get-job-tests"
+        assert tests._config["job_number"] == "{{signal.job_number}}"
+
+        investigate = Action.circleci_investigate().query("why?").project_slug("gh/org/repo").max_iterations(5)
+        assert investigate._action == "circleci-investigate"
+        assert investigate._config["max_iterations"] == 5
+
+        for factory, action_id in [
+            (Action.circleci_get_workflow_status, "circleci-get-workflow-status"),
+            (Action.circleci_cancel_workflow, "circleci-cancel-workflow"),
+        ]:
+            assert factory()._action == action_id
+
+    def test_circleci_triggers(self):
+        t = (
+            Trigger.circleci_workflow_failed()
+            .circleci_projects("gh/org/repo")
+            .circleci_branches("main", "release/*")
+        )
+        _, tc = Workflow("c").trigger(t).build()
+        assert tc["source"] == "circleci"
+        f = tc["signals"][0]["filters"]
+        assert f["circleci_event_types"] == ["workflow-completed"]
+        assert f["circleci_statuses"] == ["failed", "error"]
+        assert f["circleci_projects"] == ["gh/org/repo"]
+        assert f["circleci_branches"] == ["main", "release/*"]
+
+        for factory, event, statuses in [
+            (Trigger.circleci_workflow_succeeded, "workflow-completed", ["success"]),
+            (Trigger.circleci_workflow_completed, "workflow-completed", ["*"]),
+            (Trigger.circleci_job_failed, "job-completed", ["failed"]),
+        ]:
+            trig = factory()
+            assert trig._filters["circleci_event_types"] == [event]
+            assert trig._filters["circleci_statuses"] == statuses
+
+        _, tc = Workflow("any").trigger(Trigger.circleci_any()).build()
+        assert tc["source"] == "circleci"
+
+        _, tc = Workflow("req").trigger(Trigger.request_circleci()).build()
+        assert tc["source"] == "request"
+        assert tc["signals"][0]["filters"]["request_categories"] == ["circleci"]
+
     def test_condition_branching(self):
         wf = (
             Workflow("cond")

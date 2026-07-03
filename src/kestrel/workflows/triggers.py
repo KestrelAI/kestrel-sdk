@@ -292,6 +292,59 @@ class Trigger:
         self._filters["clickhouse_poll_interval"] = interval
         return self
 
+    # -- Terraform Cloud filters ---------------------------------------------
+
+    def terraform_events(self, *types: str) -> Trigger:
+        self._filters["terraform_event_types"] = list(types)
+        return self
+
+    def terraform_workspaces(self, *workspaces: str) -> Trigger:
+        self._filters["terraform_workspaces"] = list(workspaces)
+        return self
+
+    def terraform_run_statuses(self, *statuses: str) -> Trigger:
+        self._filters["terraform_run_statuses"] = list(statuses)
+        return self
+
+    # -- Jenkins filters -----------------------------------------------------
+
+    def jenkins_events(self, *types: str) -> Trigger:
+        self._filters["jenkins_event_types"] = list(types)
+        return self
+
+    def jenkins_jobs(self, *jobs: str) -> Trigger:
+        """Scope to Jenkins job full names (folder-nested jobs use a path like
+        "platform/deploy-api"; ["*"] for all)."""
+        self._filters["jenkins_jobs"] = list(jobs)
+        return self
+
+    def jenkins_build_statuses(self, *statuses: str) -> Trigger:
+        """Restrict build.completed triggers by result (SUCCESS, FAILURE,
+        UNSTABLE, ABORTED; ["*"] for any)."""
+        self._filters["jenkins_build_statuses"] = list(statuses)
+        return self
+
+    # -- CircleCI filters ------------------------------------------------------
+
+    def circleci_events(self, *types: str) -> Trigger:
+        self._filters["circleci_event_types"] = list(types)
+        return self
+
+    def circleci_projects(self, *slugs: str) -> Trigger:
+        """Scope to CircleCI project slugs like "gh/org/repo" (["*"] for all)."""
+        self._filters["circleci_projects"] = list(slugs)
+        return self
+
+    def circleci_branches(self, *branches: str) -> Trigger:
+        self._filters["circleci_branches"] = list(branches)
+        return self
+
+    def circleci_statuses(self, *statuses: str) -> Trigger:
+        """Restrict by workflow/job status (success, failed, error, canceled,
+        unauthorized; ["*"] for any)."""
+        self._filters["circleci_statuses"] = list(statuses)
+        return self
+
     # -- Request filters ---------------------------------------------------
 
     def request_categories(self, *c: str) -> Trigger:
@@ -763,6 +816,94 @@ class Trigger:
         return Trigger("clickhouse", "any")
 
     # ======================================================================
+    # Factory methods — Terraform Cloud
+    # ======================================================================
+
+    @staticmethod
+    def terraform_run_created() -> Trigger:
+        return Trigger("terraform", "run:created").terraform_events("run:created")
+
+    @staticmethod
+    def terraform_run_needs_attention() -> Trigger:
+        """A plan finished and the run is awaiting confirmation/approval."""
+        return Trigger("terraform", "run:needs_attention").terraform_events("run:needs_attention")
+
+    @staticmethod
+    def terraform_run_completed() -> Trigger:
+        return Trigger("terraform", "run:completed").terraform_events("run:completed")
+
+    @staticmethod
+    def terraform_run_errored() -> Trigger:
+        return Trigger("terraform", "run:errored").terraform_events("run:errored")
+
+    @staticmethod
+    def terraform_drift_detected() -> Trigger:
+        """A health assessment detected drift between state and real infrastructure."""
+        return Trigger("terraform", "assessment:drifted").terraform_events("assessment:drifted")
+
+    @staticmethod
+    def terraform_check_failed() -> Trigger:
+        return Trigger("terraform", "assessment:check_failure").terraform_events("assessment:check_failure")
+
+    @staticmethod
+    def terraform_any() -> Trigger:
+        return Trigger("terraform", "any")
+
+    # ======================================================================
+    # Factory methods — Jenkins
+    # ======================================================================
+
+    @staticmethod
+    def jenkins_build_failed() -> Trigger:
+        return Trigger("jenkins", "build.completed").jenkins_events("build.completed").jenkins_build_statuses("FAILURE")
+
+    @staticmethod
+    def jenkins_build_unstable() -> Trigger:
+        return Trigger("jenkins", "build.completed").jenkins_events("build.completed").jenkins_build_statuses("UNSTABLE")
+
+    @staticmethod
+    def jenkins_build_succeeded() -> Trigger:
+        return Trigger("jenkins", "build.completed").jenkins_events("build.completed").jenkins_build_statuses("SUCCESS")
+
+    @staticmethod
+    def jenkins_build_completed() -> Trigger:
+        """Any build completion regardless of result."""
+        return Trigger("jenkins", "build.completed").jenkins_events("build.completed").jenkins_build_statuses("*")
+
+    @staticmethod
+    def jenkins_build_started() -> Trigger:
+        return Trigger("jenkins", "build.started").jenkins_events("build.started")
+
+    @staticmethod
+    def jenkins_any() -> Trigger:
+        return Trigger("jenkins", "any")
+
+    # ======================================================================
+    # Factory methods — CircleCI
+    # ======================================================================
+
+    @staticmethod
+    def circleci_workflow_failed() -> Trigger:
+        return Trigger("circleci", "workflow-completed").circleci_events("workflow-completed").circleci_statuses("failed", "error")
+
+    @staticmethod
+    def circleci_workflow_succeeded() -> Trigger:
+        return Trigger("circleci", "workflow-completed").circleci_events("workflow-completed").circleci_statuses("success")
+
+    @staticmethod
+    def circleci_workflow_completed() -> Trigger:
+        """Any workflow completion regardless of status."""
+        return Trigger("circleci", "workflow-completed").circleci_events("workflow-completed").circleci_statuses("*")
+
+    @staticmethod
+    def circleci_job_failed() -> Trigger:
+        return Trigger("circleci", "job-completed").circleci_events("job-completed").circleci_statuses("failed")
+
+    @staticmethod
+    def circleci_any() -> Trigger:
+        return Trigger("circleci", "any")
+
+    # ======================================================================
     # Factory methods — Request (Slack /kestrel-workflow)
     # ======================================================================
 
@@ -813,6 +954,18 @@ class Trigger:
     @staticmethod
     def request_vercel() -> Trigger:
         return Trigger("request", "any").filter(request_categories=["vercel"])
+
+    @staticmethod
+    def request_terraform() -> Trigger:
+        return Trigger("request", "any").filter(request_categories=["terraform"])
+
+    @staticmethod
+    def request_jenkins() -> Trigger:
+        return Trigger("request", "any").filter(request_categories=["jenkins"])
+
+    @staticmethod
+    def request_circleci() -> Trigger:
+        return Trigger("request", "any").filter(request_categories=["circleci"])
 
     @staticmethod
     def request_general() -> Trigger:

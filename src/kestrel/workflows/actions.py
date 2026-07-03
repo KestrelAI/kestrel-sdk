@@ -406,6 +406,85 @@ class Action:
     def size(self, n: Number) -> Action:
         return self.config("size", n)
 
+    # -- Terraform Cloud -----------------------------------------------------
+
+    def workspace(self, w: str) -> Action:
+        return self.config("workspace", w)
+
+    def run_id(self, rid: str) -> Action:
+        return self.config("run_id", rid)
+
+    def run_message(self, template: str) -> Action:
+        """Run message shown in Terraform Cloud (config key "message")."""
+        return self.config("message", template)
+
+    def auto_apply(self, v: bool = True) -> Action:
+        return self.config("auto_apply", v)
+
+    def comment(self, c: str) -> Action:
+        return self.config("comment", c)
+
+    def reason(self, r: str) -> Action:
+        return self.config("reason", r)
+
+    def key(self, k: str) -> Action:
+        return self.config("key", k)
+
+    def value(self, v: str) -> Action:
+        return self.config("value", v)
+
+    def category(self, c: str) -> Action:
+        """Variable category: "terraform" or "env"."""
+        return self.config("category", c)
+
+    def hcl(self, v: bool = True) -> Action:
+        return self.config("hcl", v)
+
+    def sensitive(self, v: bool = True) -> Action:
+        return self.config("sensitive", v)
+
+    # -- Jenkins -------------------------------------------------------------
+
+    def job(self, j: str) -> Action:
+        """Jenkins job full name (folder-nested jobs use a path like
+        "platform/deploy-api")."""
+        return self.config("job", j)
+
+    def build_number(self, b: str) -> Action:
+        """Build number (or blank for the last build). Accepts templates like
+        "{{signal.build_number}}"."""
+        return self.config("build_number", b)
+
+    def max_lines(self, n: Number) -> Action:
+        return self.config("max_lines", n)
+
+    # -- CircleCI ------------------------------------------------------------
+
+    def project_slug(self, slug: str) -> Action:
+        """CircleCI project slug like "gh/org/repo"."""
+        return self.config("project_slug", slug)
+
+    def pipeline_id(self, pid: str) -> Action:
+        return self.config("pipeline_id", pid)
+
+    def workflow_id(self, wid: str) -> Action:
+        return self.config("workflow_id", wid)
+
+    def branch(self, b: str) -> Action:
+        return self.config("branch", b)
+
+    def tag(self, t: str) -> Action:
+        return self.config("tag", t)
+
+    def job_number(self, jn: str) -> Action:
+        return self.config("job_number", jn)
+
+    def job_name(self, jn: str) -> Action:
+        return self.config("job_name", jn)
+
+    def from_failed(self, v: bool = True) -> Action:
+        return self.config("from_failed", v)
+
     # ======================================================================
     # Factory methods — Kestrel
     # ======================================================================
@@ -1474,6 +1553,157 @@ class Action:
     @staticmethod
     def clickhouse_investigate() -> Action:
         return Action("clickhouse", "clickhouse-investigate")
+
+    # ======================================================================
+    # Factory methods — Terraform Cloud
+    # ======================================================================
+
+    @staticmethod
+    def terraform_list_workspaces() -> Action:
+        return Action("terraform", "terraform-list-workspaces")
+
+    @staticmethod
+    def terraform_get_workspace() -> Action:
+        return Action("terraform", "terraform-get-workspace")
+
+    @staticmethod
+    def terraform_lock_workspace() -> Action:
+        return Action("terraform", "terraform-lock-workspace")
+
+    @staticmethod
+    def terraform_unlock_workspace() -> Action:
+        return Action("terraform", "terraform-unlock-workspace")
+
+    @staticmethod
+    def terraform_force_unlock_workspace() -> Action:
+        return Action("terraform", "terraform-force-unlock-workspace")
+
+    @staticmethod
+    def terraform_list_runs() -> Action:
+        return Action("terraform", "terraform-list-runs")
+
+    @staticmethod
+    def terraform_get_run() -> Action:
+        return Action("terraform", "terraform-get-run")
+
+    @staticmethod
+    def terraform_create_run() -> Action:
+        """Queue a plan (and optionally auto-apply) on a workspace."""
+        return Action("terraform", "terraform-create-run")
+
+    @staticmethod
+    def terraform_create_destroy_run() -> Action:
+        return Action("terraform", "terraform-create-destroy-run")
+
+    @staticmethod
+    def terraform_apply_run() -> Action:
+        """Confirm and apply a run awaiting confirmation."""
+        return Action("terraform", "terraform-apply-run")
+
+    @staticmethod
+    def terraform_discard_run() -> Action:
+        return Action("terraform", "terraform-discard-run")
+
+    @staticmethod
+    def terraform_cancel_run() -> Action:
+        return Action("terraform", "terraform-cancel-run")
+
+    @staticmethod
+    def terraform_wait_for_run() -> Action:
+        """Poll a run until it reaches a terminal or attention state."""
+        return Action("terraform", "terraform-wait-for-run")
+
+    @staticmethod
+    def terraform_get_state_outputs() -> Action:
+        return Action("terraform", "terraform-get-state-outputs")
+
+    @staticmethod
+    def terraform_list_variables() -> Action:
+        return Action("terraform", "terraform-list-variables")
+
+    @staticmethod
+    def terraform_set_variable() -> Action:
+        return Action("terraform", "terraform-set-variable")
+
+    @staticmethod
+    def terraform_get_drift() -> Action:
+        return Action("terraform", "terraform-get-drift")
+
+    @staticmethod
+    def terraform_investigate() -> Action:
+        return Action("terraform", "terraform-investigate")
+
+    # ======================================================================
+    # Factory methods — Jenkins
+    # ======================================================================
+
+    @staticmethod
+    def jenkins_trigger_build() -> Action:
+        """Trigger a Jenkins job build, optionally with build parameters."""
+        return Action("jenkins", "jenkins-trigger-build")
+
+    @staticmethod
+    def jenkins_wait_for_build() -> Action:
+        """Wait for a Jenkins build to complete and return its result."""
+        return Action("jenkins", "jenkins-wait-for-build")
+
+    @staticmethod
+    def jenkins_get_build_status() -> Action:
+        return Action("jenkins", "jenkins-get-build-status")
+
+    @staticmethod
+    def jenkins_stop_build() -> Action:
+        """Abort a running Jenkins build."""
+        return Action("jenkins", "jenkins-stop-build")
+
+    @staticmethod
+    def jenkins_get_console_log() -> Action:
+        return Action("jenkins", "jenkins-get-console-log")
+
+    @staticmethod
+    def jenkins_investigate() -> Action:
+        return Action("jenkins", "jenkins-investigate")
+
+    # ======================================================================
+    # Factory methods — CircleCI
+    # ======================================================================
+
+    @staticmethod
+    def circleci_trigger_pipeline() -> Action:
+        """Trigger a CircleCI pipeline on a branch or tag."""
+        return Action("circleci", "circleci-trigger-pipeline")
+
+    @staticmethod
+    def circleci_wait_for_pipeline() -> Action:
+        """Wait for a CircleCI pipeline's workflows to complete."""
+        return Action("circleci", "circleci-wait-for-pipeline")
+
+    @staticmethod
+    def circleci_get_workflow_status() -> Action:
+        return Action("circleci", "circleci-get-workflow-status")
+
+    @staticmethod
+    def circleci_rerun_workflow() -> Action:
+        """Rerun a CircleCI workflow, optionally only its failed jobs."""
+        return Action("circleci", "circleci-rerun-workflow")
+
+    @staticmethod
+    def circleci_cancel_workflow() -> Action:
+        """Cancel a running CircleCI workflow."""
+        return Action("circleci", "circleci-cancel-workflow")
+
+    @staticmethod
+    def circleci_approve_job() -> Action:
+        """Approve an on-hold approval job so a gated workflow can proceed."""
+        return Action("circleci", "circleci-approve-job")
+
+    @staticmethod
+    def circleci_get_job_tests() -> Action:
+        return Action("circleci", "circleci-get-job-tests")
+
+    @staticmethod
+    def circleci_investigate() -> Action:
+        return Action("circleci", "circleci-investigate")
 
     # ======================================================================
     # Internal serialisation
