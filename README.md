@@ -76,6 +76,10 @@ client.integrations.connect("pagerduty", api_token="...", webhook_secret="...")
 # Follow-up steps after connecting (e.g. webhook setup), if any
 print(client.integrations.post_connect_hint("cloudflare"))
 
+# Save a vendor-generated webhook signing secret after connect
+# (Vercel, Railway, PlanetScale, Supabase) — keeps the stored API token
+client.integrations.set_webhook_secret("vercel", "whsec_...")
+
 # Knowledge sources
 client.integrations.connect(
     "confluence",

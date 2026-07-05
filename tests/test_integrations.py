@@ -201,6 +201,58 @@ class TestTestAndDisconnect:
             client.integrations.disconnect("slack")
 
 
+class TestSetWebhookSecret:
+    def test_registry_paths(self):
+        supported = {s.key for s in REGISTRY if s.webhook_secret_path}
+        assert supported == {"vercel", "railway", "planetscale", "supabase"}
+        for spec in REGISTRY:
+            if spec.webhook_secret_path:
+                assert spec.webhook_secret_path == f"/api/integrations/{spec.key}/webhook-secret"
+                # The post-connect hint should tell users how to save the secret.
+                assert "set_webhook_secret" in spec.post_connect_hint, spec.key
+
+    @respx.mock
+    def test_set_webhook_secret_vercel(self, client: KestrelClient):
+        route = respx.post(f"{SERVER}/api/integrations/vercel/webhook-secret").mock(
+            return_value=httpx.Response(200, json={"status": "saved"})
+        )
+        result = client.integrations.set_webhook_secret("vercel", "whsec_123")
+        assert result == {"status": "saved"}
+        import json
+        body = json.loads(route.calls[0].request.content)
+        assert body == {"webhook_secret": "whsec_123"}
+
+    @respx.mock
+    def test_set_webhook_secret_planetscale_merges(self, client: KestrelClient):
+        respx.post(f"{SERVER}/api/integrations/planetscale/webhook-secret").mock(
+            return_value=httpx.Response(200, json={"status": "saved", "webhook_secret_count": 2})
+        )
+        result = client.integrations.set_webhook_secret("planetscale", "pscale_wh_abc")
+        assert result["webhook_secret_count"] == 2
+
+    def test_set_webhook_secret_strips_whitespace(self, client: KestrelClient):
+        with respx.mock:
+            route = respx.post(f"{SERVER}/api/integrations/supabase/webhook-secret").mock(
+                return_value=httpx.Response(200, json={"status": "saved"})
+            )
+            client.integrations.set_webhook_secret("supabase", "  secret  \n")
+            import json
+            body = json.loads(route.calls[0].request.content)
+            assert body == {"webhook_secret": "secret"}
+
+    def test_set_webhook_secret_unsupported(self, client: KestrelClient):
+        with pytest.raises(KestrelError, match="does not take a pasted webhook secret"):
+            client.integrations.set_webhook_secret("cloudflare", "s")
+
+    def test_set_webhook_secret_empty(self, client: KestrelClient):
+        with pytest.raises(ValidationError, match="webhook secret is required"):
+            client.integrations.set_webhook_secret("vercel", "   ")
+
+    def test_set_webhook_secret_unknown(self, client: KestrelClient):
+        with pytest.raises(KestrelError, match="Unknown integration"):
+            client.integrations.set_webhook_secret("does-not-exist", "s")
+
+
 class TestAsyncIntegrations:
     @respx.mock
     @pytest.mark.asyncio
@@ -228,3 +280,19 @@ class TestAsyncIntegrations:
             hint = c.integrations.setup_help("pagerduty")
             assert f"{SERVER}/api/webhooks/pagerduty" in hint
             assert c.integrations.post_connect_hint("railway")
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_async_set_webhook_secret(self):
+        respx.post(f"{SERVER}/api/integrations/railway/webhook-secret").mock(
+            return_value=httpx.Response(200, json={"status": "saved"})
+        )
+        async with AsyncKestrelClient(server=SERVER, session_token=TOKEN) as c:
+            result = await c.integrations.set_webhook_secret("railway", "my-secret")
+            assert result == {"status": "saved"}
+
+    @pytest.mark.asyncio
+    async def test_async_set_webhook_secret_unsupported(self):
+        async with AsyncKestrelClient(server=SERVER, session_token=TOKEN) as c:
+            with pytest.raises(KestrelError, match="does not take a pasted webhook secret"):
+                await c.integrations.set_webhook_secret("jenkins", "s")

@@ -7,6 +7,7 @@ can connect any integration programmatically:
     client.integrations.setup_help("cloudflare")   # where to create credentials
     client.integrations.connect("cloudflare", api_token="...", account_id="...")
     client.integrations.post_connect_hint("cloudflare")  # e.g. webhook setup
+    client.integrations.set_webhook_secret("vercel", "whsec_...")  # paste vendor secret
     client.integrations.test("cloudflare")
     client.integrations.disconnect("cloudflare")
 """
@@ -49,10 +50,15 @@ class IntegrationSpec:
     # Extra hint for after a successful connect (e.g. webhook setup).
     # `{server}` is a placeholder for your Kestrel server URL.
     post_connect_hint: str = ""
+    # Endpoint that saves vendor-generated webhook signing secret(s) after
+    # connect (PlanetScale, Vercel, Railway, Supabase). Enables
+    # ``client.integrations.set_webhook_secret(name, secret)``.
+    webhook_secret_path: str = ""
 
 
 def _token(key: str, name: str, description: str, *fields: IntegrationField,
-           setup_help: str = "", post_connect_hint: str = "") -> IntegrationSpec:
+           setup_help: str = "", post_connect_hint: str = "",
+           webhook_secret_path: str = "") -> IntegrationSpec:
     return IntegrationSpec(
         key=key, name=name, kind="token", description=description,
         connect_path=f"/api/integrations/{key}/connect",
@@ -61,6 +67,7 @@ def _token(key: str, name: str, description: str, *fields: IntegrationField,
         fields=fields,
         setup_help=setup_help,
         post_connect_hint=post_connect_hint,
+        webhook_secret_path=webhook_secret_path,
     )
 
 
@@ -99,15 +106,15 @@ REGISTRY: tuple[IntegrationSpec, ...] = (
            IntegrationField("account_id", "Cloudflare account ID", required=True),
            setup_help=(
                "API token: Cloudflare dashboard -> My Profile -> API Tokens -> Create Token -> Custom Token. "
-               "Grant: Zone (DNS Edit, Zone Read, Firewall Services Edit, Cache Purge, Page Rules Edit, "
-               "Zone Settings Edit, WAF Edit) and Account (Workers Scripts Edit, Load Balancing Edit, "
-               "Cloudflare Tunnel Edit, Access: Apps Edit). Scope Account Resources to your account. "
+               "Grant: Zone (DNS Edit, Zone Settings Edit, Zone Read, Analytics Read, Firewall Services "
+               "Edit, Health Checks Edit) and Account (Workers Scripts Edit, Workers KV Storage Edit, "
+               "Account Analytics Read, Account Settings Read). Scope Account Resources to your account. "
                "Account ID: in the dashboard URL — dash.cloudflare.com/<account-id>/home."
            ),
            post_connect_hint=(
                "To receive alerts, add a webhook in Cloudflare: Manage account -> Notifications -> "
-               "Destinations -> Webhooks -> Create, with URL {server}/api/webhooks/cloudflare and the secret "
-               "shown on the Cloudflare integration page, then route notifications to it."
+               "Destinations -> Webhooks -> Create, with URL {server}/api/webhooks/cloudflare and the "
+               "webhook_secret returned by connect(), then route notifications to it."
            )),
     _token("nebius", "Nebius", "Nebius AI Cloud resources and jobs",
            IntegrationField("credentials", "Service account authorized-key JSON document", required=True, secret=True),
@@ -129,8 +136,8 @@ REGISTRY: tuple[IntegrationSpec, ...] = (
            ),
            post_connect_hint=(
                "Optional: to receive build events, add a webhook via the Notification plugin (job -> Configure -> "
-               "Job Notifications) posting JSON to {server}/api/webhooks/jenkins with your secret in the "
-               "X-Kestrel-Webhook-Secret header."
+               "Job Notifications) posting JSON to {server}/api/webhooks/jenkins with the webhook_secret "
+               "returned by connect() in the X-Kestrel-Webhook-Secret header."
            )),
     _token("circleci", "CircleCI", "CircleCI workflow and job events",
            IntegrationField("api_token", "CircleCI personal API token", required=True, secret=True),
@@ -141,8 +148,8 @@ REGISTRY: tuple[IntegrationSpec, ...] = (
            ),
            post_connect_hint=(
                "To receive workflow/job events, add a webhook per project: Project Settings -> Webhooks -> "
-               "Add Webhook with URL {server}/api/webhooks/circleci, your signing secret, and the "
-               "Workflow Completed + Job Completed events."
+               "Add Webhook with URL {server}/api/webhooks/circleci, the webhook_secret returned by connect(), "
+               "and the Workflow Completed + Job Completed events."
            )),
     _token("terraform", "Terraform Cloud", "Terraform Cloud runs and plan/apply events",
            IntegrationField("api_token", "Terraform Cloud API token", required=True, secret=True),
@@ -155,8 +162,8 @@ REGISTRY: tuple[IntegrationSpec, ...] = (
            ),
            post_connect_hint=(
                "To receive run events, add a notification per workspace: workspace -> Settings -> Notifications -> "
-               "Create a Notification -> Webhook, URL {server}/api/webhooks/terraform, and select the run events. "
-               "Repeat for each workspace."
+               "Create a Notification -> Webhook, URL {server}/api/webhooks/terraform, the notification_token "
+               "returned by connect(), and select the run events. Repeat for each workspace."
            )),
     _token("pulumi", "Pulumi Cloud", "Pulumi stack updates and deployment events",
            IntegrationField("api_token", "Pulumi access token", required=True, secret=True),
@@ -169,8 +176,8 @@ REGISTRY: tuple[IntegrationSpec, ...] = (
            ),
            post_connect_hint=(
                "To receive stack/deployment events, add a webhook: org Settings -> Integrations -> Webhooks -> "
-               "Add webhook (destination: Webhook), payload URL {server}/api/webhooks/pulumi, your secret, "
-               "and check all trigger groups."
+               "Add webhook (destination: Webhook), payload URL {server}/api/webhooks/pulumi, the "
+               "webhook_secret returned by connect(), and check all trigger groups."
            )),
     _token("argocd", "Argo CD", "Argo CD application sync status",
            IntegrationField("server_url", "Argo CD server URL", required=True),
@@ -189,9 +196,10 @@ REGISTRY: tuple[IntegrationSpec, ...] = (
            ),
            post_connect_hint=(
                "To receive deployment events, add a webhook in Vercel: Settings -> Webhooks -> Create Webhook "
-               "with URL {server}/api/webhooks/vercel and the deployment/alert events, then paste the signing "
-               "secret (shown once) on the Vercel integration page."
-           )),
+               "with URL {server}/api/webhooks/vercel and the deployment/alert events, then save the signing "
+               "secret (shown once) with set_webhook_secret('vercel', secret)."
+           ),
+           webhook_secret_path="/api/integrations/vercel/webhook-secret"),
     _token("railway", "Railway", "Railway services and deployments",
            IntegrationField("api_token", "Railway API token", required=True, secret=True),
            setup_help=(
@@ -200,9 +208,11 @@ REGISTRY: tuple[IntegrationSpec, ...] = (
                "services, deployments, and logs."
            ),
            post_connect_hint=(
-               "To receive deployment events, add a webhook per project: Project -> Settings -> Webhooks with "
-               "URL {server}/api/webhooks/railway (append ?secret=<your-secret> — Railway doesn't sign webhooks)."
-           )),
+               "To receive deployment events, choose a secret and save it with "
+               "set_webhook_secret('railway', secret), then add a webhook per project: Project -> Settings -> "
+               "Webhooks with URL {server}/api/webhooks/railway?secret=<your-secret> (Railway doesn't sign webhooks)."
+           ),
+           webhook_secret_path="/api/integrations/railway/webhook-secret"),
     _token("flyio", "Fly.io", "Fly.io apps, machines, and deployments",
            IntegrationField("api_token", "Fly.io API token", required=True, secret=True),
            IntegrationField("org_slug", "Fly.io organization slug"),
@@ -218,7 +228,9 @@ REGISTRY: tuple[IntegrationSpec, ...] = (
            setup_help=(
                "API token: Beam dashboard -> Settings -> API Keys & Workspace ID -> Create Key. "
                "Or via CLI: pip install beam-client && beam config create kestrel, then copy the token "
-               "from ~/.beam/config.ini. No webhooks needed — Kestrel polls the Beam API."
+               "from ~/.beam/config.ini. Permissions: Full Access, or Restricted with Read+Write+Delete "
+               "on Deployments, Containers, Tasks, Machines and Read on Images, Volumes, Logs. "
+               "No webhooks needed — Kestrel polls the Beam API."
            )),
     _token("daytona", "Daytona", "Daytona sandboxes and dev environments",
            IntegrationField("api_key", "Daytona API key", required=True, secret=True),
@@ -242,8 +254,9 @@ REGISTRY: tuple[IntegrationSpec, ...] = (
            post_connect_hint=(
                "Optional: for row-level DB events, add a Database Webhook per project (Integrations -> "
                "Database Webhooks) posting to {server}/api/webhooks/supabase with your secret in the "
-               "X-Supabase-Webhook-Secret header."
-           )),
+               "X-Supabase-Webhook-Secret header, then save it with set_webhook_secret('supabase', secret)."
+           ),
+           webhook_secret_path="/api/integrations/supabase/webhook-secret"),
     _token("planetscale", "PlanetScale", "PlanetScale branches, deploy requests, and database events",
            IntegrationField("token_id", "Service token ID", required=True),
            IntegrationField("token", "Service token", required=True, secret=True),
@@ -258,8 +271,9 @@ REGISTRY: tuple[IntegrationSpec, ...] = (
            post_connect_hint=(
                "To receive branch/deploy events, add a webhook per database: Settings -> Webhooks -> "
                "Add webhook with URL {server}/api/webhooks/planetscale. PlanetScale shows a unique signing "
-               "secret per webhook — paste it on the PlanetScale integration page."
-           )),
+               "secret per webhook — save each with set_webhook_secret('planetscale', secret)."
+           ),
+           webhook_secret_path="/api/integrations/planetscale/webhook-secret"),
     _token("neon", "Neon", "Neon Postgres projects, branches, and compute",
            IntegrationField("api_key", "Neon API key", required=True, secret=True),
            IntegrationField("org_id", "Neon organization ID (auto-detected for keys with a single org; required if the key can see multiple)"),
@@ -398,6 +412,21 @@ def _expand_server(text: str, server_url: str) -> str:
     return text.replace("{server}", server_url or "<your-kestrel-server>")
 
 
+def _webhook_secret_request(name: str, secret: str) -> tuple[str, dict[str, Any]]:
+    """Validate and build the request for saving a vendor-generated webhook secret."""
+    spec = get_spec(name)
+    if not spec.webhook_secret_path:
+        supported = ", ".join(sorted(s.key for s in REGISTRY if s.webhook_secret_path))
+        raise KestrelError(
+            f"{spec.name} does not take a pasted webhook secret — supported: {supported}"
+        )
+    if not secret or not secret.strip():
+        raise ValidationError(
+            f"webhook secret is required for {spec.name}", missing_fields=["secret"]
+        )
+    return spec.webhook_secret_path, {"webhook_secret": secret.strip()}
+
+
 class IntegrationsNamespace:
     """Sync integration management."""
 
@@ -472,6 +501,17 @@ class IntegrationsNamespace:
             return
         raise KestrelError(f"{spec.name} must be disconnected in the Kestrel UI")
 
+    def set_webhook_secret(self, name: str, secret: str) -> dict[str, Any]:
+        """Save a vendor-generated webhook signing secret after connect.
+
+        Supported for integrations where the third party generates the secret
+        (Vercel, Railway, PlanetScale, Supabase). The stored API token is kept
+        as-is. For PlanetScale (one secret per database webhook), call once
+        per secret — new secrets are merged with the ones already stored.
+        """
+        path, body = _webhook_secret_request(name, secret)
+        return self._c._post(path, json=body) or {"status": "saved"}
+
     def _find_knowledge_source(self, spec: IntegrationSpec) -> dict[str, Any]:
         data = self._c._get("/api/tribal-knowledge/sources")
         for src in data.get("sources", []):
@@ -538,6 +578,11 @@ class AsyncIntegrationsNamespace:
             await self._c._delete(f"/api/tribal-knowledge/sources/{src['id']}")
             return
         raise KestrelError(f"{spec.name} must be disconnected in the Kestrel UI")
+
+    async def set_webhook_secret(self, name: str, secret: str) -> dict[str, Any]:
+        """Save a vendor-generated webhook signing secret after connect."""
+        path, body = _webhook_secret_request(name, secret)
+        return await self._c._post(path, json=body) or {"status": "saved"}
 
     async def _find_knowledge_source(self, spec: IntegrationSpec) -> dict[str, Any]:
         data = await self._c._get("/api/tribal-knowledge/sources")
