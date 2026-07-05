@@ -65,9 +65,16 @@ for status in client.integrations.list():
 for spec in client.integrations.specs():
     print(spec.key, spec.kind, [f.name for f in spec.fields])
 
+# Setup instructions: where to create each credential (mirrors the
+# platform UI and `kestrel integrations connect <name> --help`)
+print(client.integrations.setup_help("cloudflare"))
+
 # Token integrations take credential kwargs
 client.integrations.connect("cloudflare", api_token="...", account_id="...")
 client.integrations.connect("pagerduty", api_token="...", webhook_secret="...")
+
+# Follow-up steps after connecting (e.g. webhook setup), if any
+print(client.integrations.post_connect_hint("cloudflare"))
 
 # Knowledge sources
 client.integrations.connect(

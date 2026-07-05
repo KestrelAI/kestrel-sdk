@@ -42,6 +42,36 @@ class TestRegistry:
     def test_get_spec_case_insensitive(self):
         assert get_spec("Cloudflare").key == "cloudflare"
 
+    def test_all_specs_have_setup_help(self):
+        # Parity with the CLI: every integration explains where to create
+        # its credentials (or how to run the multi-step flow).
+        for spec in REGISTRY:
+            assert spec.setup_help, spec.key
+
+    def test_webhook_hints_use_server_placeholder(self):
+        for spec in REGISTRY:
+            if "/api/webhooks/" in spec.post_connect_hint:
+                assert "{server}/api/webhooks/" in spec.post_connect_hint, spec.key
+
+
+class TestSetupHelp:
+    def test_setup_help_expands_server(self, client: KestrelClient):
+        hint = client.integrations.setup_help("daytona")
+        assert f"{SERVER}/api/webhooks/daytona" in hint
+        assert "{server}" not in hint
+
+    def test_post_connect_hint_expands_server(self, client: KestrelClient):
+        hint = client.integrations.post_connect_hint("cloudflare")
+        assert f"{SERVER}/api/webhooks/cloudflare" in hint
+        assert "{server}" not in hint
+
+    def test_post_connect_hint_empty_when_none(self, client: KestrelClient):
+        assert client.integrations.post_connect_hint("argocd") == ""
+
+    def test_setup_help_unknown(self, client: KestrelClient):
+        with pytest.raises(KestrelError, match="Unknown integration"):
+            client.integrations.setup_help("does-not-exist")
+
 
 class TestListIntegrations:
     @respx.mock
@@ -191,3 +221,10 @@ class TestAsyncIntegrations:
         async with AsyncKestrelClient(server=SERVER, session_token=TOKEN) as c:
             statuses = await c.integrations.list()
             assert statuses[0].id == "aws"
+
+    @pytest.mark.asyncio
+    async def test_async_setup_help(self):
+        async with AsyncKestrelClient(server=SERVER, session_token=TOKEN) as c:
+            hint = c.integrations.setup_help("pagerduty")
+            assert f"{SERVER}/api/webhooks/pagerduty" in hint
+            assert c.integrations.post_connect_hint("railway")
