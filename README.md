@@ -1,6 +1,6 @@
 # Kestrel SDK
 
-Python SDK for [Kestrel](https://usekestrel.ai) — AI Agents for Cloud Operations.
+Python SDK for [Kestrel](https://usekestrel.ai) — AI Agents for Platform Engineering.
 
 Build, deploy, and manage workflows programmatically with a typed, fluent API.
 
