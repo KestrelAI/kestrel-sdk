@@ -3,6 +3,7 @@
 from .client import KestrelClient
 from .async_client import AsyncKestrelClient
 from .exceptions import AuthError, ConflictError, KestrelError, NotFoundError, ServerError, ValidationError
+from .integrations import IntegrationField, IntegrationSpec
 from .models import (
     Approval,
     Catalog,
@@ -37,4 +38,6 @@ __all__ = [
     "SuggestedWorkflow",
     "Catalog",
     "IntegrationStatus",
+    "IntegrationSpec",
+    "IntegrationField",
 ]

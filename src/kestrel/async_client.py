@@ -8,6 +8,7 @@ import httpx
 
 from .auth import Config, load_config
 from .exceptions import AuthError, ConflictError, KestrelError, NotFoundError, ServerError, ValidationError
+from .integrations import AsyncIntegrationsNamespace
 from .models import (
     Approval,
     Catalog,
@@ -255,6 +256,7 @@ class AsyncKestrelClient:
         self.executions = _AsyncExecutionsNamespace(self)
         self.approvals = _AsyncApprovalsNamespace(self)
         self.requests = _AsyncRequestsNamespace(self)
+        self.integrations = AsyncIntegrationsNamespace(self)
 
     @classmethod
     def from_config(cls) -> AsyncKestrelClient:

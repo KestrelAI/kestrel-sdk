@@ -6,6 +6,7 @@ import httpx
 
 from .auth import Config, load_config, save_config
 from .exceptions import AuthError, ConflictError, KestrelError, NotFoundError, ServerError, ValidationError
+from .integrations import IntegrationsNamespace
 from .models import (
     Approval,
     Catalog,
@@ -306,6 +307,7 @@ class KestrelClient:
         self.executions = _ExecutionsNamespace(self)
         self.approvals = _ApprovalsNamespace(self)
         self.requests = _RequestsNamespace(self)
+        self.integrations = IntegrationsNamespace(self)
 
     @classmethod
     def from_config(cls) -> KestrelClient:

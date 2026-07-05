@@ -51,6 +51,43 @@ async with AsyncKestrelClient(api_key="kestrel_sk_...") as client:
     print(f"Result: {result.status}")
 ```
 
+## Integrations
+
+Connect, test, and disconnect Kestrel integrations programmatically.
+API keys need the `integrations:read` / `integrations:manage` scopes.
+
+```python
+# See every integration and its connection status
+for status in client.integrations.list():
+    print(status.id, status.connected)
+
+# Inspect credential requirements per integration
+for spec in client.integrations.specs():
+    print(spec.key, spec.kind, [f.name for f in spec.fields])
+
+# Token integrations take credential kwargs
+client.integrations.connect("cloudflare", api_token="...", account_id="...")
+client.integrations.connect("pagerduty", api_token="...", webhook_secret="...")
+
+# Knowledge sources
+client.integrations.connect(
+    "confluence",
+    base_url="https://acme.atlassian.net",
+    api_key="me@acme.com",   # Atlassian account email
+    api_token="...",
+)
+
+# OAuth integrations return a URL to open in the browser
+url = client.integrations.connect("github")
+
+# Verify and clean up
+client.integrations.test("cloudflare")
+client.integrations.disconnect("cloudflare")
+```
+
+Kubernetes, AWS, and OCI use multi-step flows — connect those with the
+Kestrel CLI (`kestrel integrations connect <name> --help`).
+
 ## Authentication
 
 Create an API key in the Kestrel platform under **Workflows > API Keys**.
