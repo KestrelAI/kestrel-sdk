@@ -217,6 +217,15 @@ class _AsyncRequestsNamespace:
         )
         return data
 
+    async def confirm(self, request_id: str, confirm: bool) -> dict:
+        """Resolve a pending_confirmation request: True files it for the
+        platform team, False dismisses it."""
+        data = await self._c._post(
+            f"/api/workflow-requests/{request_id}/confirm",
+            json={"confirm": confirm},
+        )
+        return data
+
 
 class AsyncKestrelClient:
     """Async entry point for the Kestrel Python SDK.

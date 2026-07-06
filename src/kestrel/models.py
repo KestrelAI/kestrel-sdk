@@ -141,6 +141,8 @@ class WorkflowRequest(_Base):
 class RequestResult(_Base):
     status: str = ""
     request_id: str = ""
+    id: str = ""
+    summary: str = ""
     workflow_name: str = ""
     parameters: dict[str, Any] = Field(default_factory=dict)
     missing_parameters: list[str] = Field(default_factory=list)

@@ -403,11 +403,27 @@ class TestWorkflowsExtras:
 
     @respx.mock
     def test_request(self, client):
-        respx.post(f"{SERVER}/api/workflow-requests").mock(
+        respx.post(f"{SERVER}/api/workflow-requests/submit").mock(
             httpx.Response(200, json={"status": "no_workflow", "request_id": "req-1"})
         )
         res = client.workflows.request("restart api-server")
         assert res.request_id == "req-1"
+
+    @respx.mock
+    def test_request_confirm(self, client):
+        respx.post(f"{SERVER}/api/workflow-requests/req-1/confirm").mock(
+            httpx.Response(200, json={"id": "req-1", "status": "no_workflow", "summary": "Filed for the platform team."})
+        )
+        res = client.workflows.request_confirm("req-1", True)
+        assert res.id == "req-1" and res.status == "no_workflow"
+
+    @respx.mock
+    def test_request_confirm_dismiss(self, client):
+        respx.post(f"{SERVER}/api/workflow-requests/req-2/confirm").mock(
+            httpx.Response(200, json={"id": "req-2", "status": "dismissed", "summary": "Dismissed."})
+        )
+        res = client.workflows.request_confirm("req-2", False)
+        assert res.status == "dismissed"
 
     @respx.mock
     def test_stats(self, client):

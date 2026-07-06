@@ -162,6 +162,15 @@ class _WorkflowsNamespace:
         )
         return RequestResult.model_validate(data)
 
+    def request_confirm(self, request_id: str, confirm: bool) -> RequestResult:
+        """Resolve a pending_confirmation request: True files it for the
+        platform team, False dismisses it."""
+        data = self._c._post(
+            f"/api/workflow-requests/{request_id}/confirm",
+            json={"confirm": confirm},
+        )
+        return RequestResult.model_validate(data)
+
     def stats(self) -> WorkflowStats:
         return WorkflowStats.model_validate(self._c._get("/api/workflows/stats"))
 
