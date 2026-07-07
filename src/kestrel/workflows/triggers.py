@@ -402,6 +402,28 @@ class Trigger:
         self._filters["datadog_tags"] = list(tags)
         return self
 
+    # -- Schedule filters ----------------------------------------------------
+
+    def schedule_interval(self, interval: str) -> Trigger:
+        """Set the recurring cadence: "hourly", "daily", "weekly", or "monthly"."""
+        self._filters["schedule_interval"] = interval
+        return self
+
+    def schedule_time(self, hhmm_utc: str) -> Trigger:
+        """Set the HH:MM (24h, UTC) fire time for daily/weekly/monthly schedules."""
+        self._filters["schedule_time_utc"] = hhmm_utc
+        return self
+
+    def schedule_day_of_week(self, day: int) -> Trigger:
+        """Set the weekday for weekly schedules (0=Sunday ... 6=Saturday)."""
+        self._filters["schedule_day_of_week"] = day
+        return self
+
+    def schedule_day_of_month(self, day: int) -> Trigger:
+        """Set the day of month (1-28) for monthly schedules."""
+        self._filters["schedule_day_of_month"] = day
+        return self
+
     # ======================================================================
     # Factory methods — Kubernetes
     # ======================================================================
@@ -457,6 +479,21 @@ class Trigger:
     @staticmethod
     def aws_budget_alert() -> Trigger:
         return Trigger("aws", "budget_alert")
+
+    @staticmethod
+    def aws_forecast_overrun() -> Trigger:
+        """Month-end cost forecast exceeds last month's spend by >20%."""
+        return Trigger("aws", "forecast_overrun")
+
+    @staticmethod
+    def aws_spend_spike() -> Trigger:
+        """Yesterday's spend exceeds the trailing 7-day average."""
+        return Trigger("aws", "spend_spike")
+
+    @staticmethod
+    def aws_idle_resource() -> Trigger:
+        """Daily idle-resource scan found unattached volumes, unassociated EIPs, or idle instances."""
+        return Trigger("aws", "idle_resource")
 
     @staticmethod
     def aws_any() -> Trigger:
@@ -1043,6 +1080,40 @@ class Trigger:
     @staticmethod
     def request_general() -> Trigger:
         return Trigger("request", "any").filter(request_categories=["general"])
+
+    # ======================================================================
+    # Factory methods — Schedule
+    # ======================================================================
+
+    @staticmethod
+    def schedule_hourly() -> Trigger:
+        """Fires at the top of every hour."""
+        return Trigger("schedule", "schedule").schedule_interval("hourly")
+
+    @staticmethod
+    def schedule_daily(time_utc: str = "09:00") -> Trigger:
+        """Fires once a day at the given HH:MM UTC time."""
+        return Trigger("schedule", "schedule").schedule_interval("daily").schedule_time(time_utc)
+
+    @staticmethod
+    def schedule_weekly(day_of_week: int = 1, time_utc: str = "09:00") -> Trigger:
+        """Fires once a week (0=Sunday ... 6=Saturday; default Monday) at HH:MM UTC."""
+        return (
+            Trigger("schedule", "schedule")
+            .schedule_interval("weekly")
+            .schedule_day_of_week(day_of_week)
+            .schedule_time(time_utc)
+        )
+
+    @staticmethod
+    def schedule_monthly(day_of_month: int = 1, time_utc: str = "09:00") -> Trigger:
+        """Fires once a month on the given day (1-28) at HH:MM UTC."""
+        return (
+            Trigger("schedule", "schedule")
+            .schedule_interval("monthly")
+            .schedule_day_of_month(day_of_month)
+            .schedule_time(time_utc)
+        )
 
     # ======================================================================
     # Factory methods — Custom Webhook

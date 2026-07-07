@@ -942,6 +942,68 @@ class Action:
     def aws_get_budget_status() -> Action:
         return Action("aws-cost", "aws-get-budget-status")
 
+    @staticmethod
+    def aws_get_rightsizing_recommendations() -> Action:
+        """EC2 rightsizing recommendations from Cost Explorer with monthly savings."""
+        return Action("aws-cost", "aws-get-rightsizing-recommendations")
+
+    @staticmethod
+    def aws_get_savings_plans_recommendations() -> Action:
+        """Savings Plans purchase recommendations from Cost Explorer."""
+        return Action("aws-cost", "aws-get-savings-plans-recommendations")
+
+    @staticmethod
+    def aws_get_reservation_recommendations() -> Action:
+        """Reserved Instance purchase recommendations (EC2, RDS, ElastiCache, OpenSearch, Redshift)."""
+        return Action("aws-cost", "aws-get-reservation-recommendations")
+
+    @staticmethod
+    def aws_get_commitment_utilization() -> Action:
+        """Savings Plans and Reserved Instance utilization / unused commitment."""
+        return Action("aws-cost", "aws-get-commitment-utilization")
+
+    @staticmethod
+    def aws_compare_cost_periods() -> Action:
+        """Compare spend between two consecutive periods and find top cost movers."""
+        return Action("aws-cost", "aws-compare-cost-periods")
+
+    @staticmethod
+    def aws_find_idle_resources() -> Action:
+        """Scan for unattached EBS volumes, unassociated Elastic IPs, low-CPU EC2 instances, and old snapshots."""
+        return Action("aws-cost", "aws-find-idle-resources")
+
+    @staticmethod
+    def aws_get_compute_optimizer_recommendations() -> Action:
+        """AWS Compute Optimizer recommendations (EC2, ASG, EBS, Lambda)."""
+        return Action("aws-cost", "aws-get-compute-optimizer-recommendations")
+
+    @staticmethod
+    def aws_get_trusted_advisor_cost_checks() -> Action:
+        """Trusted Advisor cost optimization checks (Business/Enterprise support required)."""
+        return Action("aws-cost", "aws-get-trusted-advisor-cost-checks")
+
+    # -- AWS Cost remediation (destructive — place behind an Approval block) --
+
+    @staticmethod
+    def aws_stop_ec2_instances() -> Action:
+        """Stop running EC2 instances. Instances tagged kestrel:protected are skipped."""
+        return Action("aws-cost", "aws-stop-ec2-instances")
+
+    @staticmethod
+    def aws_delete_unattached_ebs_volumes() -> Action:
+        """Delete unattached ('available') EBS volumes, optionally snapshotting first."""
+        return Action("aws-cost", "aws-delete-unattached-ebs-volumes")
+
+    @staticmethod
+    def aws_release_elastic_ips() -> Action:
+        """Release unassociated Elastic IP addresses."""
+        return Action("aws-cost", "aws-release-elastic-ips")
+
+    @staticmethod
+    def aws_delete_old_snapshots() -> Action:
+        """Delete EBS snapshots older than a threshold (AMI-referenced snapshots skipped)."""
+        return Action("aws-cost", "aws-delete-old-snapshots")
+
     # ======================================================================
     # Factory methods — PostHog
     # ======================================================================
