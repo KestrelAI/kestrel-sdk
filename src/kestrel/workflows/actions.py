@@ -1189,6 +1189,10 @@ class Action:
         return Action("daytona", "daytona-list-sandboxes")
 
     @staticmethod
+    def daytona_create_sandbox() -> Action:
+        return Action("daytona", "daytona-create-sandbox")
+
+    @staticmethod
     def daytona_get_sandbox() -> Action:
         return Action("daytona", "daytona-get-sandbox")
 
@@ -1235,6 +1239,14 @@ class Action:
     @staticmethod
     def daytona_get_volume() -> Action:
         return Action("daytona", "daytona-get-volume")
+
+    @staticmethod
+    def daytona_create_volume() -> Action:
+        return Action("daytona", "daytona-create-volume")
+
+    @staticmethod
+    def daytona_delete_volume() -> Action:
+        return Action("daytona", "daytona-delete-volume")
 
     @staticmethod
     def daytona_investigate() -> Action:

@@ -1414,6 +1414,7 @@ class TestBuilderDSL:
     def test_daytona_factory_methods(self):
         cases = {
             "daytona-list-sandboxes": Action.daytona_list_sandboxes(),
+            "daytona-create-sandbox": Action.daytona_create_sandbox(),
             "daytona-get-sandbox": Action.daytona_get_sandbox(),
             "daytona-start-sandbox": Action.daytona_start_sandbox(),
             "daytona-stop-sandbox": Action.daytona_stop_sandbox(),
@@ -1426,6 +1427,8 @@ class TestBuilderDSL:
             "daytona-delete-snapshot": Action.daytona_delete_snapshot(),
             "daytona-list-volumes": Action.daytona_list_volumes(),
             "daytona-get-volume": Action.daytona_get_volume(),
+            "daytona-create-volume": Action.daytona_create_volume(),
+            "daytona-delete-volume": Action.daytona_delete_volume(),
             "daytona-investigate": Action.daytona_investigate(),
         }
         for action_id, action in cases.items():
