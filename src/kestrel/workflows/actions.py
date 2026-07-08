@@ -426,6 +426,17 @@ class Action:
     def node_group_id(self, ngid: str) -> Action:
         return self.config("node_group_id", ngid)
 
+    def platform(self, p: str) -> Action:
+        """Nebius compute platform, e.g. "gpu-h100-sxm" or "cpu-e2"."""
+        return self.config("platform", p)
+
+    def preset(self, p: str) -> Action:
+        """Nebius resource preset, e.g. "1gpu-16vcpu-200gb" or "2vcpu-8gb"."""
+        return self.config("preset", p)
+
+    def subnet_id(self, sid: str) -> Action:
+        return self.config("subnet_id", sid)
+
     # -- Daytona -----------------------------------------------------------
 
     def sandbox_id(self, sid: str) -> Action:
@@ -1235,6 +1246,22 @@ class Action:
     @staticmethod
     def nebius_scale_node_group() -> Action:
         return Action("nebius", "nebius-scale-node-group")
+
+    @staticmethod
+    def nebius_create_instance() -> Action:
+        return Action("nebius", "nebius-create-instance")
+
+    @staticmethod
+    def nebius_delete_instance() -> Action:
+        return Action("nebius", "nebius-delete-instance")
+
+    @staticmethod
+    def nebius_create_node_group() -> Action:
+        return Action("nebius", "nebius-create-node-group")
+
+    @staticmethod
+    def nebius_delete_node_group() -> Action:
+        return Action("nebius", "nebius-delete-node-group")
 
     @staticmethod
     def nebius_investigate() -> Action:

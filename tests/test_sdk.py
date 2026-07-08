@@ -1499,12 +1499,84 @@ class TestBuilderDSL:
             "nebius-list-clusters": Action.nebius_list_clusters(),
             "nebius-list-node-groups": Action.nebius_list_node_groups(),
             "nebius-scale-node-group": Action.nebius_scale_node_group(),
+            "nebius-create-instance": Action.nebius_create_instance(),
+            "nebius-delete-instance": Action.nebius_delete_instance(),
+            "nebius-create-node-group": Action.nebius_create_node_group(),
+            "nebius-delete-node-group": Action.nebius_delete_node_group(),
             "nebius-investigate": Action.nebius_investigate(),
         }
         for action_id, action in cases.items():
             node = action._to_node("action-1").to_dict()
             assert node["data"]["integration"] == "nebius"
             assert node["data"]["action"] == action_id
+
+    def test_nebius_provisioning_actions_serialize(self):
+        wf = (
+            Workflow("nebius-provision")
+            .trigger(Trigger.nebius_any())
+            .then(
+                Action.nebius_create_instance()
+                .project_id("project-abc")
+                .name("gpu-box")
+                .platform("gpu-h100-sxm")
+                .preset("1gpu-16vcpu-200gb")
+                .subnet_id("subnet-1")
+                .config("image_family", "ubuntu22.04-cuda12")
+                .config("boot_disk_gb", 200)
+                .config("ssh_public_key", "ssh-ed25519 AAAA dev@host")
+            )
+            .then(
+                Action.nebius_delete_instance()
+                .project_id("project-abc")
+                .instance_id("{{step_outputs.action-1.instance_id}}")
+                .config("delete_boot_disk", True)
+            )
+            .then(
+                Action.nebius_create_node_group()
+                .cluster_id("cluster-1")
+                .name("gpu-pool")
+                .platform("gpu-h200-sxm")
+                .preset("1gpu-16vcpu-200gb")
+                .config("node_count", 2)
+            )
+            .then(
+                Action.nebius_delete_node_group()
+                .cluster_id("cluster-1")
+                .node_group_id("{{step_outputs.action-3.node_group_id}}")
+            )
+        )
+        d, tc = wf.build()
+        action_nodes = [n for n in d["nodes"] if n["type"] == "action"]
+        assert len(action_nodes) == 4
+
+        create = action_nodes[0]["data"]
+        assert create["action"] == "nebius-create-instance"
+        assert create["config"]["project_id"] == "project-abc"
+        assert create["config"]["name"] == "gpu-box"
+        assert create["config"]["platform"] == "gpu-h100-sxm"
+        assert create["config"]["preset"] == "1gpu-16vcpu-200gb"
+        assert create["config"]["subnet_id"] == "subnet-1"
+        assert create["config"]["image_family"] == "ubuntu22.04-cuda12"
+        assert create["config"]["boot_disk_gb"] == 200
+        assert create["config"]["ssh_public_key"] == "ssh-ed25519 AAAA dev@host"
+
+        delete = action_nodes[1]["data"]
+        assert delete["action"] == "nebius-delete-instance"
+        assert delete["config"]["instance_id"] == "{{step_outputs.action-1.instance_id}}"
+        assert delete["config"]["delete_boot_disk"] is True
+
+        create_ng = action_nodes[2]["data"]
+        assert create_ng["action"] == "nebius-create-node-group"
+        assert create_ng["config"]["cluster_id"] == "cluster-1"
+        assert create_ng["config"]["name"] == "gpu-pool"
+        assert create_ng["config"]["platform"] == "gpu-h200-sxm"
+        assert create_ng["config"]["node_count"] == 2
+
+        delete_ng = action_nodes[3]["data"]
+        assert delete_ng["action"] == "nebius-delete-node-group"
+        assert delete_ng["config"]["node_group_id"] == "{{step_outputs.action-3.node_group_id}}"
+
+        assert tc["source"] == "nebius"
 
     def test_nebius_trigger_factory_methods(self):
         cases = {
