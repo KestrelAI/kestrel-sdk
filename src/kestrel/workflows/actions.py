@@ -426,6 +426,11 @@ class Action:
     def node_group_id(self, ngid: str) -> Action:
         return self.config("node_group_id", ngid)
 
+    # -- Daytona -----------------------------------------------------------
+
+    def sandbox_id(self, sid: str) -> Action:
+        return self.config("sandbox_id", sid)
+
     def size(self, n: Number) -> Action:
         return self.config("size", n)
 

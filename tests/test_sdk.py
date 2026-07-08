@@ -57,7 +57,7 @@ from kestrel import (
     ServerError,
     ValidationError,
 )
-from kestrel.workflows import Action, Approval, Condition, Trigger, Workflow
+from kestrel.workflows import Action, Approval, Condition, PollUntil, Trigger, Workflow
 
 SERVER = "https://test.usekestrel.ai"
 API_KEY = "kestrel_sk_test"
@@ -1200,6 +1200,73 @@ class TestBuilderDSL:
         assert data["approval_type"] == "slack"
         assert data["config"]["channel"] == "#oncall"
         assert slack.to_dict()["type"] == "refine_approval"
+
+    def test_poll_until_node(self):
+        """PollUntil emits a self-looping loop node with the embedded action,
+        exit condition, interval/timeout, and met/timeout branching."""
+        wf = (
+            Workflow("poll")
+            .trigger(Trigger.request_general())
+            .then(Action.daytona_create_sandbox())
+            .then(
+                PollUntil(
+                    Action.daytona_get_sandbox().config("sandbox_id", "{{step_outputs.action-1.sandbox_id}}"),
+                    Condition.not_equals("state", "started"),
+                )
+                .every(seconds=45)
+                .timeout(minutes=30)
+                .label("Poll until stopped")
+            )
+            .on_met(Action.slack_send_message().channel("dev"))
+            .on_timeout(Action.slack_send_message().channel("dev"))
+        )
+        d, _ = wf.build()
+
+        loop = next(n for n in d["nodes"] if n["type"] == "loop")
+        assert loop["id"] == "loop-1"
+        assert loop["data"]["integration"] == "daytona"
+        assert loop["data"]["action"] == "daytona-get-sandbox"
+        assert loop["data"]["config"]["sandbox_id"] == "{{step_outputs.action-1.sandbox_id}}"
+        assert loop["data"]["condition"] == {
+            "field": "state",
+            "operator": "not_equals",
+            "value": "started",
+        }
+        assert loop["data"]["interval_seconds"] == 45
+        assert loop["data"]["timeout_minutes"] == 30
+        assert loop["data"]["label"] == "Poll until stopped"
+
+        labels = {e.get("label") for e in d["edges"]}
+        assert {"met", "timeout"} <= labels
+
+    def test_poll_until_defaults(self):
+        node = PollUntil(
+            Action.daytona_get_sandbox(),
+            Condition.equals("state", "stopped"),
+        )._to_node("loop-1")
+        data = node.to_dict()["data"]
+        assert data["interval_seconds"] == 60
+        assert data["timeout_minutes"] == 60
+        assert data["condition"]["operator"] == "equals"
+        # Single-value conditions omit "values" (legacy payload shape).
+        assert "values" not in data["condition"]
+
+    def test_poll_until_multi_value_condition(self):
+        """Condition factories accept multiple values; the payload carries
+        them in "values" (ANY-match for equals, NONE-match for not_equals)."""
+        node = PollUntil(
+            Action.daytona_get_sandbox(),
+            Condition.equals("sandbox_state", "stopped", "error"),
+        )._to_node("loop-1")
+        cond = node.to_dict()["data"]["condition"]
+        assert cond["operator"] == "equals"
+        assert cond["values"] == ["stopped", "error"]
+
+    def test_condition_node_multi_value(self):
+        node = Condition.not_equals("state", "started", "starting")._to_node("condition-1")
+        data = node.to_dict()["data"]
+        assert data["operator"] == "not_equals"
+        assert data["values"] == ["started", "starting"]
 
     def test_parallel_via_also(self):
         wf = (

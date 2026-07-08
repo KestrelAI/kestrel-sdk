@@ -7,10 +7,11 @@ from typing import Any, Optional, Union
 from .actions import Action
 from .approvals import Approval
 from .conditions import Condition
+from .loops import PollUntil
 from .triggers import Trigger
 from .types import _Edge, _Node
 
-Step = Union[Action, Condition, Approval]
+Step = Union[Action, Condition, Approval, PollUntil]
 
 
 class Workflow:
@@ -54,6 +55,7 @@ class Workflow:
         self._action_counter = 0
         self._condition_counter = 0
         self._approval_counter = 0
+        self._loop_counter = 0
         self._edge_counter = 0
 
         # Tracks where .then() / .on_true() / .on_false() etc. attach next
@@ -114,6 +116,14 @@ class Workflow:
         """Attach a step to the **rejected** branch of the last approval gate."""
         return self._attach(step, source=self._last_branch_node, edge_label="rejected")
 
+    def on_met(self, step: Step) -> Workflow:
+        """Attach a step to the **met** branch of the last poll-until loop."""
+        return self._attach(step, source=self._last_branch_node, edge_label="met")
+
+    def on_timeout(self, step: Step) -> Workflow:
+        """Attach a step to the **timeout** branch of the last poll-until loop."""
+        return self._attach(step, source=self._last_branch_node, edge_label="timeout")
+
     def also(self, step: Step) -> Workflow:
         """Attach a parallel step from the same parent as the last step (sibling)."""
         return self._attach(step, source=self._last_branch_node or self._cursor, edge_label=None)
@@ -157,6 +167,9 @@ class Workflow:
         elif isinstance(step, Approval):
             self._approval_counter += 1
             return f"approval-{self._approval_counter}"
+        elif isinstance(step, PollUntil):
+            self._loop_counter += 1
+            return f"loop-{self._loop_counter}"
         raise TypeError(f"Unknown step type: {type(step)}")
 
     def _next_edge_id(self) -> str:
@@ -182,7 +195,7 @@ class Workflow:
         self._cursor_label = None
 
         # Track branching nodes so .on_true()/.on_false() etc. can reference them
-        if isinstance(step, (Condition, Approval)):
+        if isinstance(step, (Condition, Approval, PollUntil)):
             self._last_branch_node = node_id
 
         return self

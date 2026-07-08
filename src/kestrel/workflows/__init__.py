@@ -17,12 +17,14 @@ from .actions import Action
 from .approvals import Approval
 from .builder import Workflow
 from .conditions import Condition
+from .loops import PollUntil
 from .triggers import Trigger
 
 __all__ = [
     "Action",
     "Approval",
     "Condition",
+    "PollUntil",
     "Trigger",
     "Workflow",
 ]
