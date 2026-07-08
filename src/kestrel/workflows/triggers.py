@@ -684,6 +684,26 @@ class Trigger:
         return Trigger("daytona", "any")
 
     # ======================================================================
+    # Factory methods — Karpenter
+    # ======================================================================
+
+    @staticmethod
+    def karpenter_node_provisioning_failed() -> Trigger:
+        return Trigger("karpenter", "nodeclaim.provisioning_failed")
+
+    @staticmethod
+    def karpenter_node_interrupted() -> Trigger:
+        return Trigger("karpenter", "node.interrupted")
+
+    @staticmethod
+    def karpenter_nodepool_limit_reached() -> Trigger:
+        return Trigger("karpenter", "nodepool.limit_reached")
+
+    @staticmethod
+    def karpenter_any() -> Trigger:
+        return Trigger("karpenter", "any")
+
+    # ======================================================================
     # Factory methods — Supabase
     # ======================================================================
 
@@ -1044,6 +1064,10 @@ class Trigger:
     @staticmethod
     def request_fluxcd() -> Trigger:
         return Trigger("request", "any").filter(request_categories=["fluxcd"])
+
+    @staticmethod
+    def request_karpenter() -> Trigger:
+        return Trigger("request", "any").filter(request_categories=["karpenter"])
 
     @staticmethod
     def request_github() -> Trigger:

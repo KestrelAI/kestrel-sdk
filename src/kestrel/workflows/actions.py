@@ -318,6 +318,29 @@ class Action:
     def with_source(self, v: bool = True) -> Action:
         return self.config("with_source", v)
 
+    # -- Karpenter ---------------------------------------------------------
+
+    def nodepool_name(self, name: str) -> Action:
+        return self.config("nodepool_name", name)
+
+    def nodeclaim_name(self, name: str) -> Action:
+        return self.config("nodeclaim_name", name)
+
+    def cpu_limit(self, limit: str) -> Action:
+        return self.config("cpu_limit", limit)
+
+    def memory_limit(self, limit: str) -> Action:
+        return self.config("memory_limit", limit)
+
+    def consolidation_policy(self, policy: str) -> Action:
+        return self.config("consolidation_policy", policy)
+
+    def consolidate_after(self, duration: str) -> Action:
+        return self.config("consolidate_after", duration)
+
+    def nodepool_spec(self, manifest: str) -> Action:
+        return self.config("nodepool_spec", manifest)
+
     # -- Fly.io ------------------------------------------------------------
 
     def machine_id(self, mid: str) -> Action:
@@ -897,6 +920,38 @@ class Action:
     @staticmethod
     def flux_get_events() -> Action:
         return Action("fluxcd", "flux-get-events")
+
+    # ======================================================================
+    # Factory methods — Karpenter
+    # ======================================================================
+
+    @staticmethod
+    def karpenter_list_nodepools() -> Action:
+        return Action("karpenter", "karpenter-list-nodepools")
+
+    @staticmethod
+    def karpenter_get_nodepool_status() -> Action:
+        return Action("karpenter", "karpenter-get-nodepool-status")
+
+    @staticmethod
+    def karpenter_list_nodeclaims() -> Action:
+        return Action("karpenter", "karpenter-list-nodeclaims")
+
+    @staticmethod
+    def karpenter_scale_nodepool() -> Action:
+        return Action("karpenter", "karpenter-scale-nodepool")
+
+    @staticmethod
+    def karpenter_set_disruption() -> Action:
+        return Action("karpenter", "karpenter-set-disruption")
+
+    @staticmethod
+    def karpenter_apply_nodepool() -> Action:
+        return Action("karpenter", "karpenter-apply-nodepool")
+
+    @staticmethod
+    def karpenter_delete_nodeclaim() -> Action:
+        return Action("karpenter", "karpenter-delete-nodeclaim")
 
     # ======================================================================
     # Factory methods — Helm

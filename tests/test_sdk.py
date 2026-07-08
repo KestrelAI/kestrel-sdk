@@ -742,6 +742,66 @@ class TestBuilderDSL:
         _, t = Workflow("f").trigger(Trigger.request_fluxcd()).build()
         assert t["signals"][0]["filters"]["request_categories"] == ["fluxcd"]
 
+    def test_karpenter_actions(self):
+        """Karpenter factories emit the right integration, action IDs, and
+        config keys."""
+        scale = (
+            Action.karpenter_scale_nodepool()
+            .cluster_id("c1")
+            .nodepool_name("default")
+            .cpu_limit("200")
+            .memory_limit("400Gi")
+        )
+        assert scale._integration == "karpenter"
+        assert scale._action == "karpenter-scale-nodepool"
+        assert scale._config["cluster_id"] == "c1"
+        assert scale._config["nodepool_name"] == "default"
+        assert scale._config["cpu_limit"] == "200"
+        assert scale._config["memory_limit"] == "400Gi"
+
+        disruption = (
+            Action.karpenter_set_disruption()
+            .nodepool_name("default")
+            .consolidation_policy("WhenEmpty")
+            .consolidate_after("5m")
+        )
+        assert disruption._action == "karpenter-set-disruption"
+        assert disruption._config["consolidation_policy"] == "WhenEmpty"
+        assert disruption._config["consolidate_after"] == "5m"
+
+        apply = Action.karpenter_apply_nodepool().nodepool_spec("apiVersion: karpenter.sh/v1\nkind: NodePool")
+        assert apply._action == "karpenter-apply-nodepool"
+        assert apply._config["nodepool_spec"].startswith("apiVersion: karpenter.sh/v1")
+
+        delete = Action.karpenter_delete_nodeclaim().nodeclaim_name("default-abc12")
+        assert delete._action == "karpenter-delete-nodeclaim"
+        assert delete._config["nodeclaim_name"] == "default-abc12"
+
+        for factory, action_id in [
+            (Action.karpenter_list_nodepools, "karpenter-list-nodepools"),
+            (Action.karpenter_get_nodepool_status, "karpenter-get-nodepool-status"),
+            (Action.karpenter_list_nodeclaims, "karpenter-list-nodeclaims"),
+        ]:
+            action = factory()
+            assert action._integration == "karpenter"
+            assert action._action == action_id
+
+    def test_karpenter_triggers(self):
+        _, t = Workflow("k").trigger(Trigger.request_karpenter()).build()
+        assert t["source"] == "request"
+        assert t["signals"][0]["filters"]["request_categories"] == ["karpenter"]
+
+        for factory, signal_type in [
+            (Trigger.karpenter_node_provisioning_failed, "nodeclaim.provisioning_failed"),
+            (Trigger.karpenter_node_interrupted, "node.interrupted"),
+            (Trigger.karpenter_nodepool_limit_reached, "nodepool.limit_reached"),
+            (Trigger.karpenter_any, "any"),
+        ]:
+            _, t = Workflow("k").trigger(factory().cluster("c1")).build()
+            assert t["source"] == "karpenter"
+            assert t["signals"][0]["signal_type"] == signal_type
+            assert t["signals"][0]["filters"]["cluster_ids"] == ["c1"]
+
     def test_terraform_actions(self):
         """Terraform Cloud factories emit the right integration, action IDs,
         and config keys."""
