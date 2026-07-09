@@ -427,11 +427,11 @@ class Action:
         return self.config("node_group_id", ngid)
 
     def platform(self, p: str) -> Action:
-        """Nebius compute platform, e.g. "gpu-h100-sxm" or "cpu-e2"."""
+        """Nebius compute platform, e.g. "gpu-h100-sxm" or "cpu-d3" (availability varies by project region)."""
         return self.config("platform", p)
 
     def preset(self, p: str) -> Action:
-        """Nebius resource preset, e.g. "1gpu-16vcpu-200gb" or "2vcpu-8gb"."""
+        """Nebius resource preset, e.g. "1gpu-16vcpu-200gb" or "4vcpu-16gb"."""
         return self.config("preset", p)
 
     def subnet_id(self, sid: str) -> Action:
