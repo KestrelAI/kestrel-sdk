@@ -57,7 +57,7 @@ from kestrel import (
     ServerError,
     ValidationError,
 )
-from kestrel.workflows import Action, Approval, Condition, PollUntil, Trigger, Workflow
+from kestrel.workflows import Action, Approval, Condition, ForEach, PollUntil, Trigger, Workflow
 
 SERVER = "https://test.usekestrel.ai"
 API_KEY = "kestrel_sk_test"
@@ -1267,6 +1267,55 @@ class TestBuilderDSL:
         data = node.to_dict()["data"]
         assert data["operator"] == "not_equals"
         assert data["values"] == ["started", "starting"]
+
+    def test_for_each_node(self):
+        """ForEach emits a for_each node with the embedded per-item action,
+        items_path, fan-out settings, and ordinary successor edges."""
+        wf = (
+            Workflow("fanout")
+            .trigger(Trigger.request_general())
+            .then(Action("kestrel", "kestrel-execute-script").config("script", "print('x')"))
+            .then(
+                ForEach(
+                    "{{step_outputs.action-1.outputs.new_findings}}",
+                    Action.jira_create_ticket()
+                    .config("project_key", "SEC")
+                    .config("title_template", "[Audit] {{item.title}}"),
+                )
+                .max_items(50)
+                .continue_on_error()
+                .label("Ticket per finding")
+            )
+            .then(Action.slack_send_message().channel("security"))
+        )
+        d, _ = wf.build()
+
+        fe = next(n for n in d["nodes"] if n["type"] == "for_each")
+        assert fe["id"] == "foreach-1"
+        assert fe["data"]["integration"] == "jira"
+        assert fe["data"]["action"] == "jira-create-ticket"
+        assert fe["data"]["items_path"] == "{{step_outputs.action-1.outputs.new_findings}}"
+        assert fe["data"]["config"]["title_template"] == "[Audit] {{item.title}}"
+        assert fe["data"]["max_items"] == 50
+        assert fe["data"]["continue_on_error"] is True
+        assert fe["data"]["label"] == "Ticket per finding"
+
+        # Successor wired via a plain (unlabelled) edge from the for_each node.
+        succ = next(e for e in d["edges"] if e["source"] == "foreach-1")
+        assert succ["target"] == "action-2"
+        assert not succ.get("label")
+
+    def test_for_each_defaults(self):
+        node = ForEach(
+            "{{step_outputs.action-1.outputs.items}}",
+            Action.slack_send_message().channel("dev"),
+        )._to_node("foreach-1")
+        data = node.to_dict()["data"]
+        # Server-side defaults apply; the payload omits unset optionals.
+        assert "max_items" not in data
+        assert "continue_on_error" not in data
+        assert "condition" not in data
+        assert data["items_path"] == "{{step_outputs.action-1.outputs.items}}"
 
     def test_parallel_via_also(self):
         wf = (

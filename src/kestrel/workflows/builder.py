@@ -7,11 +7,11 @@ from typing import Any, Optional, Union
 from .actions import Action
 from .approvals import Approval
 from .conditions import Condition
-from .loops import PollUntil
+from .loops import ForEach, PollUntil
 from .triggers import Trigger
 from .types import _Edge, _Node
 
-Step = Union[Action, Condition, Approval, PollUntil]
+Step = Union[Action, Condition, Approval, PollUntil, ForEach]
 
 
 class Workflow:
@@ -56,6 +56,7 @@ class Workflow:
         self._condition_counter = 0
         self._approval_counter = 0
         self._loop_counter = 0
+        self._foreach_counter = 0
         self._edge_counter = 0
 
         # Tracks where .then() / .on_true() / .on_false() etc. attach next
@@ -170,6 +171,9 @@ class Workflow:
         elif isinstance(step, PollUntil):
             self._loop_counter += 1
             return f"loop-{self._loop_counter}"
+        elif isinstance(step, ForEach):
+            self._foreach_counter += 1
+            return f"foreach-{self._foreach_counter}"
         raise TypeError(f"Unknown step type: {type(step)}")
 
     def _next_edge_id(self) -> str:
