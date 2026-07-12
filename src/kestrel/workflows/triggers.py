@@ -321,6 +321,60 @@ class Trigger:
         self._filters["pulumi_projects"] = list(projects)
         return self
 
+    # -- HashiCorp Vault filters -------------------------------------------
+
+    def vault_events(self, *types: str) -> Trigger:
+        self._filters["vault_event_types"] = list(types)
+        return self
+
+    def vault_mounts(self, *mounts: str) -> Trigger:
+        """Restrict secret events to specific KV v2 mounts (e.g. "secret/")."""
+        self._filters["vault_mounts"] = list(mounts)
+        return self
+
+    def vault_secret_paths(self, *paths: str) -> Trigger:
+        """Restrict secret events to path prefixes within the mount (e.g. "app/prod")."""
+        self._filters["vault_secret_paths"] = list(paths)
+        return self
+
+    def vault_secret_max_age_days(self, days: int) -> Trigger:
+        """Age threshold (days) for the secret.stale trigger. Defaults to 90."""
+        self._filters["vault_secret_max_age_days"] = days
+        return self
+
+    def vault_poll_interval(self, interval: str) -> Trigger:
+        """Set the poll cadence for the poll-based Vault triggers (one of "1m",
+        "5m", "15m", "30m"). Vault has no outbound webhooks; only secret
+        metadata is polled — never values."""
+        self._filters["vault_poll_interval"] = interval
+        return self
+
+    # -- Infisical filters ---------------------------------------------------
+
+    def infisical_events(self, *types: str) -> Trigger:
+        self._filters["infisical_event_types"] = list(types)
+        return self
+
+    def infisical_projects(self, *project_ids: str) -> Trigger:
+        self._filters["infisical_project_ids"] = list(project_ids)
+        return self
+
+    def infisical_environments(self, *environments: str) -> Trigger:
+        """Restrict secret events to environment slugs (e.g. "prod")."""
+        self._filters["infisical_environments"] = list(environments)
+        return self
+
+    def infisical_secret_paths(self, *paths: str) -> Trigger:
+        """Restrict secret events to folder path prefixes (e.g. "/backend")."""
+        self._filters["infisical_secret_paths"] = list(paths)
+        return self
+
+    def infisical_poll_interval(self, interval: str) -> Trigger:
+        """Set the poll cadence for the poll-based Infisical triggers (one of
+        "1m", "5m", "15m", "30m"). Secret values are never read."""
+        self._filters["infisical_poll_interval"] = interval
+        return self
+
     # -- Jenkins filters -----------------------------------------------------
 
     def jenkins_events(self, *types: str) -> Trigger:
@@ -976,6 +1030,92 @@ class Trigger:
         return Trigger("pulumi", "any")
 
     # ======================================================================
+    # Factory methods — HashiCorp Vault (all poll-based; Vault has no
+    # outbound webhooks. Secret values are never read — only KV metadata.)
+    # ======================================================================
+
+    @staticmethod
+    def vault_sealed() -> Trigger:
+        """Vault sealed — secrets are unavailable until it is unsealed."""
+        return Trigger("vault", "seal.sealed").vault_events("seal.sealed")
+
+    @staticmethod
+    def vault_unsealed() -> Trigger:
+        return Trigger("vault", "seal.unsealed").vault_events("seal.unsealed")
+
+    @staticmethod
+    def vault_health_degraded() -> Trigger:
+        """Vault became unreachable or reported an unhealthy status."""
+        return Trigger("vault", "health.degraded").vault_events("health.degraded")
+
+    @staticmethod
+    def vault_secret_version_created() -> Trigger:
+        """A KV v2 secret got a new version (metadata only — values are never read)."""
+        return Trigger("vault", "secret.version_created").vault_events("secret.version_created")
+
+    @staticmethod
+    def vault_secret_stale() -> Trigger:
+        """A secret's latest version exceeded the rotation age threshold
+        (set with .vault_secret_max_age_days(), default 90)."""
+        return Trigger("vault", "secret.stale").vault_events("secret.stale")
+
+    @staticmethod
+    def vault_policy_created() -> Trigger:
+        return Trigger("vault", "policy.created").vault_events("policy.created")
+
+    @staticmethod
+    def vault_policy_deleted() -> Trigger:
+        return Trigger("vault", "policy.deleted").vault_events("policy.deleted")
+
+    @staticmethod
+    def vault_auth_method_enabled() -> Trigger:
+        return Trigger("vault", "auth_method.enabled").vault_events("auth_method.enabled")
+
+    @staticmethod
+    def vault_auth_method_disabled() -> Trigger:
+        return Trigger("vault", "auth_method.disabled").vault_events("auth_method.disabled")
+
+    @staticmethod
+    def vault_any() -> Trigger:
+        return Trigger("vault", "any")
+
+    # ======================================================================
+    # Factory methods — Infisical (all poll-based, driven by the audit log
+    # and project APIs. Secret values are never read.)
+    # ======================================================================
+
+    @staticmethod
+    def infisical_secret_created() -> Trigger:
+        return Trigger("infisical", "secret.created").infisical_events("secret.created")
+
+    @staticmethod
+    def infisical_secret_updated() -> Trigger:
+        return Trigger("infisical", "secret.updated").infisical_events("secret.updated")
+
+    @staticmethod
+    def infisical_secret_deleted() -> Trigger:
+        return Trigger("infisical", "secret.deleted").infisical_events("secret.deleted")
+
+    @staticmethod
+    def infisical_approval_requested() -> Trigger:
+        """A secret change approval request was opened in a project."""
+        return Trigger("infisical", "approval.requested").infisical_events("approval.requested")
+
+    @staticmethod
+    def infisical_secret_sync_failed() -> Trigger:
+        """A secret sync to an external destination failed."""
+        return Trigger("infisical", "sync.failed").infisical_events("sync.failed")
+
+    @staticmethod
+    def infisical_identity_created() -> Trigger:
+        """A new machine identity appeared in the organization."""
+        return Trigger("infisical", "identity.created").infisical_events("identity.created")
+
+    @staticmethod
+    def infisical_any() -> Trigger:
+        return Trigger("infisical", "any")
+
+    # ======================================================================
     # Factory methods — Jenkins
     # ======================================================================
 
@@ -1100,6 +1240,14 @@ class Trigger:
     @staticmethod
     def request_circleci() -> Trigger:
         return Trigger("request", "any").filter(request_categories=["circleci"])
+
+    @staticmethod
+    def request_vault() -> Trigger:
+        return Trigger("request", "any").filter(request_categories=["vault"])
+
+    @staticmethod
+    def request_infisical() -> Trigger:
+        return Trigger("request", "any").filter(request_categories=["infisical"])
 
     @staticmethod
     def request_general() -> Trigger:

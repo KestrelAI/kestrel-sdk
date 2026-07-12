@@ -502,6 +502,82 @@ class Action:
     def tag_value(self, value: str) -> Action:
         return self.config("tag_value", value)
 
+    # -- HashiCorp Vault -------------------------------------------------------
+    # (key, value, path, name, limit helpers are shared with other
+    # integrations above; they set the same config keys Vault actions expect.)
+
+    def mount(self, m: str) -> Action:
+        """Secrets engine mount (e.g. "secret/" for KV v2, "database/" for
+        the database engine)."""
+        return self.config("mount", m)
+
+    def secret_version(self, v: Number) -> Action:
+        """Specific KV v2 secret version to read (blank for the latest)."""
+        return self.config("version", v)
+
+    def secret_data(self, json_data: str) -> Action:
+        """JSON object of key/value pairs to store, e.g.
+        '{"password": "{{step_outputs.action-1.value}}"}'."""
+        return self.config("data", json_data)
+
+    def destroy(self, v: bool = True) -> Action:
+        """Permanently destroy all versions instead of a soft-delete."""
+        return self.config("destroy", v)
+
+    def role(self, r: str) -> Action:
+        """Vault database static role name."""
+        return self.config("role", r)
+
+    def policy_hcl(self, hcl: str) -> Action:
+        """HCL policy document for vault_write_policy."""
+        return self.config("policy", hcl)
+
+    def lease_prefix(self, p: str) -> Action:
+        return self.config("prefix", p)
+
+    def lease_id(self, lid: str) -> Action:
+        return self.config("lease_id", lid)
+
+    def increment(self, seconds: Number) -> Action:
+        """Requested TTL extension in seconds for vault_renew_lease."""
+        return self.config("increment", seconds)
+
+    def accessor(self, a: str) -> Action:
+        """Token accessor for vault_revoke_token_accessor."""
+        return self.config("accessor", a)
+
+    # -- Infisical -------------------------------------------------------------
+    # (project sets "project" via infisical_project below because the shared
+    # .project() helper sets "project_key" for Jira.)
+
+    def infisical_project(self, p: str) -> Action:
+        """Infisical project (name or ID)."""
+        return self.config("project", p)
+
+    def environment(self, env: str) -> Action:
+        """Infisical environment slug (e.g. "dev", "staging", "prod")."""
+        return self.config("environment", env)
+
+    def secret_path(self, p: str) -> Action:
+        """Infisical folder path (e.g. "/backend"). Defaults to "/"."""
+        return self.config("secret_path", p)
+
+    def secret_key(self, k: str) -> Action:
+        """Infisical secret name (e.g. "DB_PASSWORD")."""
+        return self.config("key", k)
+
+    def secret_value(self, v: str) -> Action:
+        """Infisical secret value; can reference previous step outputs."""
+        return self.config("value", v)
+
+    def sync_id(self, sid: str) -> Action:
+        """Infisical secret sync to trigger (defaults to "{{signal.sync_id}}")."""
+        return self.config("sync_id", sid)
+
+    def event_type(self, et: str) -> Action:
+        """Audit-log event type filter (e.g. "create-secret")."""
+        return self.config("event_type", et)
+
     # -- Jenkins -------------------------------------------------------------
 
     def job(self, j: str) -> Action:
@@ -1882,6 +1958,165 @@ class Action:
     @staticmethod
     def pulumi_investigate() -> Action:
         return Action("pulumi", "pulumi-investigate")
+
+    # ======================================================================
+    # Factory methods — HashiCorp Vault
+    # ======================================================================
+
+    @staticmethod
+    def vault_read_secret() -> Action:
+        """Read a KV v2 secret. The 'value' output is sensitive: it is
+        redacted in run history but can be templated into downstream steps."""
+        return Action("vault", "vault-read-secret")
+
+    @staticmethod
+    def vault_write_secret() -> Action:
+        """Create or update a KV v2 secret (creates a new version).
+        Provide the data with .secret_data('{"key": "value"}')."""
+        return Action("vault", "vault-write-secret")
+
+    @staticmethod
+    def vault_delete_secret() -> Action:
+        """Soft-delete the latest version of a KV v2 secret (or destroy all
+        versions with .destroy()). Gate behind an approval."""
+        return Action("vault", "vault-delete-secret")
+
+    @staticmethod
+    def vault_list_secrets() -> Action:
+        return Action("vault", "vault-list-secrets")
+
+    @staticmethod
+    def vault_get_secret_metadata() -> Action:
+        """Fetch version and age metadata for a secret without reading its value."""
+        return Action("vault", "vault-get-secret-metadata")
+
+    @staticmethod
+    def vault_rotate_static_role() -> Action:
+        """Rotate the credentials of a database static role."""
+        return Action("vault", "vault-rotate-static-role")
+
+    @staticmethod
+    def vault_list_mounts() -> Action:
+        return Action("vault", "vault-list-mounts")
+
+    @staticmethod
+    def vault_list_policies() -> Action:
+        return Action("vault", "vault-list-policies")
+
+    @staticmethod
+    def vault_read_policy() -> Action:
+        return Action("vault", "vault-read-policy")
+
+    @staticmethod
+    def vault_write_policy() -> Action:
+        """Create or update an ACL policy from HCL (.policy_hcl())."""
+        return Action("vault", "vault-write-policy")
+
+    @staticmethod
+    def vault_list_auth_methods() -> Action:
+        return Action("vault", "vault-list-auth-methods")
+
+    @staticmethod
+    def vault_list_leases() -> Action:
+        return Action("vault", "vault-list-leases")
+
+    @staticmethod
+    def vault_revoke_lease() -> Action:
+        """Revoke a dynamic-credential lease immediately."""
+        return Action("vault", "vault-revoke-lease")
+
+    @staticmethod
+    def vault_renew_lease() -> Action:
+        return Action("vault", "vault-renew-lease")
+
+    @staticmethod
+    def vault_get_health() -> Action:
+        """Check seal/init status and server version."""
+        return Action("vault", "vault-get-health")
+
+    @staticmethod
+    def vault_list_token_accessors() -> Action:
+        return Action("vault", "vault-list-token-accessors")
+
+    @staticmethod
+    def vault_revoke_token_accessor() -> Action:
+        """Revoke a token by accessor (e.g. during credential-leak response)."""
+        return Action("vault", "vault-revoke-token-accessor")
+
+    @staticmethod
+    def vault_investigate() -> Action:
+        """AI investigation of Vault state (read-only; never reads secret values)."""
+        return Action("vault", "vault-investigate")
+
+    # ======================================================================
+    # Factory methods — Infisical
+    # ======================================================================
+
+    @staticmethod
+    def infisical_get_secret() -> Action:
+        """Read a secret. The 'value' output is sensitive: it is redacted in
+        run history but can be templated into downstream steps."""
+        return Action("infisical", "infisical-get-secret")
+
+    @staticmethod
+    def infisical_create_secret() -> Action:
+        return Action("infisical", "infisical-create-secret")
+
+    @staticmethod
+    def infisical_update_secret() -> Action:
+        return Action("infisical", "infisical-update-secret")
+
+    @staticmethod
+    def infisical_delete_secret() -> Action:
+        """Delete a secret. Gate behind an approval."""
+        return Action("infisical", "infisical-delete-secret")
+
+    @staticmethod
+    def infisical_list_secrets() -> Action:
+        """List secret key names (never values) in a project/environment/path."""
+        return Action("infisical", "infisical-list-secrets")
+
+    @staticmethod
+    def infisical_list_projects() -> Action:
+        return Action("infisical", "infisical-list-projects")
+
+    @staticmethod
+    def infisical_list_environments() -> Action:
+        return Action("infisical", "infisical-list-environments")
+
+    @staticmethod
+    def infisical_list_folders() -> Action:
+        return Action("infisical", "infisical-list-folders")
+
+    @staticmethod
+    def infisical_create_folder() -> Action:
+        return Action("infisical", "infisical-create-folder")
+
+    @staticmethod
+    def infisical_list_secret_syncs() -> Action:
+        return Action("infisical", "infisical-list-secret-syncs")
+
+    @staticmethod
+    def infisical_trigger_secret_sync() -> Action:
+        """Manually trigger a secret sync (e.g. to retry after a failure)."""
+        return Action("infisical", "infisical-trigger-secret-sync")
+
+    @staticmethod
+    def infisical_list_approval_requests() -> Action:
+        return Action("infisical", "infisical-list-approval-requests")
+
+    @staticmethod
+    def infisical_get_audit_logs() -> Action:
+        return Action("infisical", "infisical-get-audit-logs")
+
+    @staticmethod
+    def infisical_list_identities() -> Action:
+        return Action("infisical", "infisical-list-identities")
+
+    @staticmethod
+    def infisical_investigate() -> Action:
+        """AI investigation of Infisical state (read-only; never reads secret values)."""
+        return Action("infisical", "infisical-investigate")
 
     # ======================================================================
     # Factory methods — Jenkins

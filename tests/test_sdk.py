@@ -989,6 +989,229 @@ class TestBuilderDSL:
         assert tc["source"] == "request"
         assert tc["signals"][0]["filters"]["request_categories"] == ["pulumi"]
 
+    def test_vault_actions(self):
+        """Vault factories emit the right integration, action IDs, and
+        config keys."""
+        read = (
+            Action.vault_read_secret()
+            .mount("secret/")
+            .path("app/prod/db")
+            .secret_key("password")
+            .secret_version(3)
+        )
+        assert read._integration == "vault"
+        assert read._action == "vault-read-secret"
+        assert read._config["mount"] == "secret/"
+        assert read._config["path"] == "app/prod/db"
+        assert read._config["key"] == "password"
+        assert read._config["version"] == 3
+
+        write = (
+            Action.vault_write_secret()
+            .mount("secret/")
+            .path("app/prod/db")
+            .secret_data('{"password": "{{step_outputs.action-1.value}}"}')
+        )
+        assert write._action == "vault-write-secret"
+        assert write._config["data"] == '{"password": "{{step_outputs.action-1.value}}"}'
+
+        delete = Action.vault_delete_secret().mount("secret/").path("app/old").destroy()
+        assert delete._action == "vault-delete-secret"
+        assert delete._config["destroy"] is True
+
+        rotate = Action.vault_rotate_static_role().mount("database/").role("app-db")
+        assert rotate._action == "vault-rotate-static-role"
+        assert rotate._config["role"] == "app-db"
+
+        policy = (
+            Action.vault_write_policy()
+            .name("app-read")
+            .policy_hcl('path "secret/data/app/*" {\n  capabilities = ["read"]\n}')
+        )
+        assert policy._action == "vault-write-policy"
+        assert policy._config["name"] == "app-read"
+        assert "capabilities" in policy._config["policy"]
+
+        renew = Action.vault_renew_lease().lease_id("database/creds/app/abc").increment(3600)
+        assert renew._action == "vault-renew-lease"
+        assert renew._config["lease_id"] == "database/creds/app/abc"
+        assert renew._config["increment"] == 3600
+
+        revoke_tok = Action.vault_revoke_token_accessor().accessor("hmac.abc123")
+        assert revoke_tok._action == "vault-revoke-token-accessor"
+        assert revoke_tok._config["accessor"] == "hmac.abc123"
+
+        investigate = (
+            Action.vault_investigate()
+            .query("why is this secret stale?")
+            .mount("secret/")
+            .max_iterations(5)
+        )
+        assert investigate._action == "vault-investigate"
+        assert investigate._config["query"] == "why is this secret stale?"
+        assert investigate._config["max_iterations"] == 5
+
+        for factory, action_id in [
+            (Action.vault_list_secrets, "vault-list-secrets"),
+            (Action.vault_get_secret_metadata, "vault-get-secret-metadata"),
+            (Action.vault_list_mounts, "vault-list-mounts"),
+            (Action.vault_list_policies, "vault-list-policies"),
+            (Action.vault_read_policy, "vault-read-policy"),
+            (Action.vault_list_auth_methods, "vault-list-auth-methods"),
+            (Action.vault_list_leases, "vault-list-leases"),
+            (Action.vault_revoke_lease, "vault-revoke-lease"),
+            (Action.vault_get_health, "vault-get-health"),
+            (Action.vault_list_token_accessors, "vault-list-token-accessors"),
+        ]:
+            assert factory()._action == action_id
+            assert factory()._integration == "vault"
+
+    def test_vault_triggers(self):
+        t = (
+            Trigger.vault_secret_stale()
+            .vault_mounts("secret/")
+            .vault_secret_paths("app/prod")
+            .vault_secret_max_age_days(60)
+            .vault_poll_interval("15m")
+        )
+        _, tc = Workflow("v").trigger(t).build()
+        assert tc["source"] == "vault"
+        f = tc["signals"][0]["filters"]
+        assert f["vault_event_types"] == ["secret.stale"]
+        assert f["vault_mounts"] == ["secret/"]
+        assert f["vault_secret_paths"] == ["app/prod"]
+        assert f["vault_secret_max_age_days"] == 60
+        assert f["vault_poll_interval"] == "15m"
+
+        for factory, event in [
+            (Trigger.vault_sealed, "seal.sealed"),
+            (Trigger.vault_unsealed, "seal.unsealed"),
+            (Trigger.vault_health_degraded, "health.degraded"),
+            (Trigger.vault_secret_version_created, "secret.version_created"),
+            (Trigger.vault_policy_created, "policy.created"),
+            (Trigger.vault_policy_deleted, "policy.deleted"),
+            (Trigger.vault_auth_method_enabled, "auth_method.enabled"),
+            (Trigger.vault_auth_method_disabled, "auth_method.disabled"),
+        ]:
+            trig = factory()
+            assert trig._filters["vault_event_types"] == [event]
+
+        _, tc = Workflow("any").trigger(Trigger.vault_any()).build()
+        assert tc["source"] == "vault"
+
+        _, tc = Workflow("req").trigger(Trigger.request_vault()).build()
+        assert tc["source"] == "request"
+        assert tc["signals"][0]["filters"]["request_categories"] == ["vault"]
+
+    def test_infisical_actions(self):
+        """Infisical factories emit the right integration, action IDs, and
+        config keys."""
+        get = (
+            Action.infisical_get_secret()
+            .infisical_project("backend")
+            .environment("prod")
+            .secret_path("/api")
+            .secret_key("DB_PASSWORD")
+        )
+        assert get._integration == "infisical"
+        assert get._action == "infisical-get-secret"
+        assert get._config["project"] == "backend"
+        assert get._config["environment"] == "prod"
+        assert get._config["secret_path"] == "/api"
+        assert get._config["key"] == "DB_PASSWORD"
+
+        create = (
+            Action.infisical_create_secret()
+            .infisical_project("backend")
+            .environment("prod")
+            .secret_key("API_KEY")
+            .secret_value("{{step_outputs.action-1.value}}")
+            .comment("rotated by Kestrel")
+        )
+        assert create._action == "infisical-create-secret"
+        assert create._config["value"] == "{{step_outputs.action-1.value}}"
+        assert create._config["comment"] == "rotated by Kestrel"
+
+        folder = (
+            Action.infisical_create_folder()
+            .infisical_project("backend")
+            .environment("prod")
+            .path("/")
+            .name("payments")
+        )
+        assert folder._action == "infisical-create-folder"
+        assert folder._config["name"] == "payments"
+
+        sync = Action.infisical_trigger_secret_sync().sync_id("{{signal.sync_id}}")
+        assert sync._action == "infisical-trigger-secret-sync"
+        assert sync._config["sync_id"] == "{{signal.sync_id}}"
+
+        audit = (
+            Action.infisical_get_audit_logs()
+            .infisical_project("{{signal.project_id}}")
+            .event_type("delete-secret")
+            .limit(100)
+        )
+        assert audit._action == "infisical-get-audit-logs"
+        assert audit._config["event_type"] == "delete-secret"
+        assert audit._config["limit"] == 100
+
+        investigate = (
+            Action.infisical_investigate()
+            .query("which syncs are failing?")
+            .max_iterations(5)
+        )
+        assert investigate._action == "infisical-investigate"
+        assert investigate._config["query"] == "which syncs are failing?"
+
+        for factory, action_id in [
+            (Action.infisical_update_secret, "infisical-update-secret"),
+            (Action.infisical_delete_secret, "infisical-delete-secret"),
+            (Action.infisical_list_secrets, "infisical-list-secrets"),
+            (Action.infisical_list_projects, "infisical-list-projects"),
+            (Action.infisical_list_environments, "infisical-list-environments"),
+            (Action.infisical_list_folders, "infisical-list-folders"),
+            (Action.infisical_list_secret_syncs, "infisical-list-secret-syncs"),
+            (Action.infisical_list_approval_requests, "infisical-list-approval-requests"),
+            (Action.infisical_list_identities, "infisical-list-identities"),
+        ]:
+            assert factory()._action == action_id
+            assert factory()._integration == "infisical"
+
+    def test_infisical_triggers(self):
+        t = (
+            Trigger.infisical_secret_updated()
+            .infisical_projects("proj-id-1")
+            .infisical_environments("prod")
+            .infisical_secret_paths("/backend")
+            .infisical_poll_interval("1m")
+        )
+        _, tc = Workflow("i").trigger(t).build()
+        assert tc["source"] == "infisical"
+        f = tc["signals"][0]["filters"]
+        assert f["infisical_event_types"] == ["secret.updated"]
+        assert f["infisical_project_ids"] == ["proj-id-1"]
+        assert f["infisical_environments"] == ["prod"]
+        assert f["infisical_secret_paths"] == ["/backend"]
+        assert f["infisical_poll_interval"] == "1m"
+
+        for factory, event in [
+            (Trigger.infisical_secret_created, "secret.created"),
+            (Trigger.infisical_secret_deleted, "secret.deleted"),
+            (Trigger.infisical_approval_requested, "approval.requested"),
+            (Trigger.infisical_secret_sync_failed, "sync.failed"),
+            (Trigger.infisical_identity_created, "identity.created"),
+        ]:
+            trig = factory()
+            assert trig._filters["infisical_event_types"] == [event]
+
+        _, tc = Workflow("any").trigger(Trigger.infisical_any()).build()
+        assert tc["source"] == "infisical"
+
+        _, tc = Workflow("req").trigger(Trigger.request_infisical()).build()
+        assert tc["source"] == "request"
+        assert tc["signals"][0]["filters"]["request_categories"] == ["infisical"]
+
     def test_jenkins_actions_serialize(self):
         """Jenkins factories emit the right integration, action IDs, and
         config keys."""

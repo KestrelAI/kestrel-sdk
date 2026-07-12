@@ -319,6 +319,30 @@ REGISTRY: tuple[IntegrationSpec, ...] = (
                "Webhook with your Kestrel webhook URL ({server}/api/webhooks/pagerduty), Scope Type = "
                "Account, subscribed to incident events; copy the signing secret it shows."
            )),
+    _token("vault", "HashiCorp Vault", "Vault KV secrets, policies, leases, and rotation",
+           IntegrationField("address", "Vault address (https://vault.example.com:8200)", required=True),
+           IntegrationField("token", "Vault token", required=True, secret=True),
+           IntegrationField("namespace", "Vault namespace (Enterprise/HCP; e.g. admin)"),
+           setup_help=(
+               "Token: create a periodic, renewable token bound to a dedicated Kestrel policy, e.g. "
+               "`vault token create -policy=kestrel -period=768h`. Grant the policy read/list on "
+               "sys/health, sys/mounts, sys/policies/acl, sys/auth, and the KV metadata/ paths you want "
+               "monitored, plus write only where workflows need it. Namespace (Enterprise/HCP only): "
+               "HCP Vault uses 'admin'; leave blank for OSS Vault. No webhooks needed — Kestrel polls "
+               "the Vault API (secret values are never read by triggers)."
+           )),
+    _token("infisical", "Infisical", "Infisical secrets, approvals, and secret syncs",
+           IntegrationField("client_id", "Machine Identity client ID", required=True),
+           IntegrationField("client_secret", "Machine Identity client secret", required=True, secret=True),
+           IntegrationField("site_url", "Site URL (default https://app.infisical.com)"),
+           setup_help=(
+               "Machine Identity: Infisical -> Organization Settings -> Identities -> Create identity "
+               "with Universal Auth, then grant it access to the projects you want to automate and copy "
+               "the Client ID and Client Secret. Site URL: leave blank for Infisical Cloud US; use "
+               "https://eu.infisical.com for EU Cloud or your own URL for self-hosted. No webhooks "
+               "needed — Kestrel polls the Infisical audit log and project APIs (secret-change triggers "
+               "need a paid plan for audit log access; secret values are never read by triggers)."
+           )),
     # Knowledge sources
     _knowledge("confluence", "Confluence", "Confluence runbooks and docs for AI context",
                IntegrationField("base_url", "Atlassian site URL", required=True),
