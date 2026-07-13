@@ -337,8 +337,9 @@ REGISTRY: tuple[IntegrationSpec, ...] = (
            IntegrationField("site_url", "Site URL (default https://app.infisical.com)"),
            setup_help=(
                "Machine Identity: Infisical -> Organization -> Access Control -> Machine Identities -> "
-               "Create identity with Universal Auth, then grant it access to the projects you want to "
-               "automate and copy the Client ID and Client Secret. Site URL: leave blank for Infisical "
+               "Create identity, then add it to the projects you want to automate. Open its Universal "
+               "Auth method and copy the Client ID (not the identity's ID) and create a Client Secret. "
+               "Site URL: leave blank for Infisical "
                "Cloud US; use "
                "https://eu.infisical.com for EU Cloud or your own URL for self-hosted. No webhooks "
                "needed — Kestrel polls the Infisical audit log and project APIs (secret-change triggers "
