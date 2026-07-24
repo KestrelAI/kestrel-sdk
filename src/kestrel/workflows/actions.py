@@ -1620,6 +1620,10 @@ class Action:
         return Action("neon", "neon-reset-branch")
 
     @staticmethod
+    def neon_restore_branch() -> Action:
+        return Action("neon", "neon-restore-branch")
+
+    @staticmethod
     def neon_list_endpoints() -> Action:
         return Action("neon", "neon-list-endpoints")
 
