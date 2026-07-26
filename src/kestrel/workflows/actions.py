@@ -341,6 +341,30 @@ class Action:
     def nodepool_spec(self, manifest: str) -> Action:
         return self.config("nodepool_spec", manifest)
 
+    # -- Kyverno -------------------------------------------------------------
+    # cluster_id() / ns() / severity() / max_results() are shared helpers.
+
+    def policy_name(self, name: str) -> Action:
+        """The Kyverno ClusterPolicy (or namespaced Policy) to operate on."""
+        return self.config("policy_name", name)
+
+    def policy_filter(self, name: str) -> Action:
+        """Limit violation listing to results produced by one policy."""
+        return self.config("policy", name)
+
+    def result_filter(self, result: str) -> Action:
+        """Which PolicyReport results to include ("fail", "warn", "error",
+        "fail,warn,error", or "all")."""
+        return self.config("result", result)
+
+    def enforcement_action(self, action: str) -> Action:
+        """"Enforce" (block at admission) or "Audit" (report only)."""
+        return self.config("enforcement_action", action)
+
+    def policy_spec(self, manifest: str) -> Action:
+        """Full ClusterPolicy/Policy manifest (YAML or JSON)."""
+        return self.config("policy_spec", manifest)
+
     # -- Fly.io ------------------------------------------------------------
 
     def machine_id(self, mid: str) -> Action:
@@ -1130,6 +1154,34 @@ class Action:
     @staticmethod
     def karpenter_delete_nodeclaim() -> Action:
         return Action("karpenter", "karpenter-delete-nodeclaim")
+
+    # ======================================================================
+    # Factory methods — Kyverno
+    # ======================================================================
+
+    @staticmethod
+    def kyverno_list_policies() -> Action:
+        return Action("kyverno", "kyverno-list-policies")
+
+    @staticmethod
+    def kyverno_get_policy() -> Action:
+        return Action("kyverno", "kyverno-get-policy")
+
+    @staticmethod
+    def kyverno_list_violations() -> Action:
+        return Action("kyverno", "kyverno-list-violations")
+
+    @staticmethod
+    def kyverno_set_enforcement() -> Action:
+        return Action("kyverno", "kyverno-set-enforcement")
+
+    @staticmethod
+    def kyverno_apply_policy() -> Action:
+        return Action("kyverno", "kyverno-apply-policy")
+
+    @staticmethod
+    def kyverno_delete_policy() -> Action:
+        return Action("kyverno", "kyverno-delete-policy")
 
     # ======================================================================
     # Factory methods — Helm

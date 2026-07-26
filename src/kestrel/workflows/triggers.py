@@ -472,6 +472,22 @@ class Trigger:
         self._filters["okta_poll_interval"] = interval
         return self
 
+    # -- Kyverno filters -----------------------------------------------------
+    # Cluster/namespace scoping uses the generic .cluster() / .namespace()
+    # helpers since Kyverno signals ride the Kubernetes event pipeline.
+
+    def kyverno_policies(self, *policies: str) -> Trigger:
+        """Scope to violations produced by specific Kyverno policy names
+        (e.g. "disallow-privileged-containers"; ["*"] for all)."""
+        self._filters["kyverno_policies"] = list(policies)
+        return self
+
+    def kyverno_severities(self, *severities: str) -> Trigger:
+        """Restrict by violation severity as annotated on the policy
+        (critical, high, medium, low, info; ["*"] for any)."""
+        self._filters["kyverno_severities"] = list(severities)
+        return self
+
     # -- Request filters ---------------------------------------------------
 
     def request_categories(self, *c: str) -> Trigger:
@@ -814,6 +830,25 @@ class Trigger:
     @staticmethod
     def karpenter_any() -> Trigger:
         return Trigger("karpenter", "any")
+
+    # ======================================================================
+    # Factory methods — Kyverno
+    # ======================================================================
+
+    @staticmethod
+    def kyverno_policy_violation() -> Trigger:
+        """A Kyverno PolicyReport recorded a new fail/warn/error result
+        (Audit-mode violation on a live resource)."""
+        return Trigger("kyverno", "policy.violation")
+
+    @staticmethod
+    def kyverno_admission_blocked() -> Trigger:
+        """A Kyverno Enforce-mode policy blocked a resource at admission."""
+        return Trigger("kyverno", "policy.admission_blocked")
+
+    @staticmethod
+    def kyverno_any() -> Trigger:
+        return Trigger("kyverno", "any")
 
     # ======================================================================
     # Factory methods — Supabase
@@ -1356,6 +1391,10 @@ class Trigger:
     @staticmethod
     def request_karpenter() -> Trigger:
         return Trigger("request", "any").filter(request_categories=["karpenter"])
+
+    @staticmethod
+    def request_kyverno() -> Trigger:
+        return Trigger("request", "any").filter(request_categories=["kyverno"])
 
     @staticmethod
     def request_github() -> Trigger:

@@ -802,6 +802,85 @@ class TestBuilderDSL:
             assert t["signals"][0]["signal_type"] == signal_type
             assert t["signals"][0]["filters"]["cluster_ids"] == ["c1"]
 
+    def test_kyverno_actions(self):
+        """Kyverno factories emit the right integration, action IDs, and
+        config keys."""
+        enforcement = (
+            Action.kyverno_set_enforcement()
+            .cluster_id("c1")
+            .policy_name("disallow-privileged-containers")
+            .enforcement_action("Enforce")
+        )
+        assert enforcement._integration == "kyverno"
+        assert enforcement._action == "kyverno-set-enforcement"
+        assert enforcement._config["cluster_id"] == "c1"
+        assert enforcement._config["policy_name"] == "disallow-privileged-containers"
+        assert enforcement._config["enforcement_action"] == "Enforce"
+
+        violations = (
+            Action.kyverno_list_violations()
+            .cluster_id("c1")
+            .ns("payments")
+            .policy_filter("require-labels")
+            .severity("high")
+            .result_filter("fail,warn,error")
+            .max_results(50)
+        )
+        assert violations._action == "kyverno-list-violations"
+        assert violations._config["namespace"] == "payments"
+        assert violations._config["policy"] == "require-labels"
+        assert violations._config["severity"] == "high"
+        assert violations._config["result"] == "fail,warn,error"
+        assert violations._config["max_results"] == 50
+
+        apply = Action.kyverno_apply_policy().cluster_id("c1").policy_spec(
+            "apiVersion: kyverno.io/v1\nkind: ClusterPolicy"
+        )
+        assert apply._action == "kyverno-apply-policy"
+        assert apply._config["policy_spec"].startswith("apiVersion: kyverno.io/v1")
+
+        delete = Action.kyverno_delete_policy().cluster_id("c1").policy_name("require-labels").ns("payments")
+        assert delete._action == "kyverno-delete-policy"
+        assert delete._config["policy_name"] == "require-labels"
+        assert delete._config["namespace"] == "payments"
+
+        for factory, action_id in [
+            (Action.kyverno_list_policies, "kyverno-list-policies"),
+            (Action.kyverno_get_policy, "kyverno-get-policy"),
+        ]:
+            action = factory()
+            assert action._integration == "kyverno"
+            assert action._action == action_id
+
+    def test_kyverno_triggers(self):
+        _, t = Workflow("k").trigger(Trigger.request_kyverno()).build()
+        assert t["source"] == "request"
+        assert t["signals"][0]["filters"]["request_categories"] == ["kyverno"]
+
+        for factory, signal_type in [
+            (Trigger.kyverno_policy_violation, "policy.violation"),
+            (Trigger.kyverno_admission_blocked, "policy.admission_blocked"),
+            (Trigger.kyverno_any, "any"),
+        ]:
+            _, t = (
+                Workflow("k")
+                .trigger(
+                    factory()
+                    .cluster("c1")
+                    .namespace("payments")
+                    .kyverno_policies("disallow-privileged-containers")
+                    .kyverno_severities("critical", "high")
+                )
+                .build()
+            )
+            assert t["source"] == "kyverno"
+            assert t["signals"][0]["signal_type"] == signal_type
+            filters = t["signals"][0]["filters"]
+            assert filters["cluster_ids"] == ["c1"]
+            assert filters["namespaces"] == ["payments"]
+            assert filters["kyverno_policies"] == ["disallow-privileged-containers"]
+            assert filters["kyverno_severities"] == ["critical", "high"]
+
     def test_terraform_actions(self):
         """Terraform Cloud factories emit the right integration, action IDs,
         and config keys."""
