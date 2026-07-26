@@ -345,6 +345,20 @@ REGISTRY: tuple[IntegrationSpec, ...] = (
                "needed — Kestrel polls the Infisical audit log and project APIs (secret-change triggers "
                "need a paid plan for audit log access; secret values are never read by triggers)."
            )),
+    _token("sonarcloud", "SonarCloud", "SonarCloud code quality gates, issues, and security hotspots",
+           IntegrationField("organization", "SonarCloud organization key", required=True),
+           IntegrationField("api_token", "SonarCloud API token", required=True, secret=True),
+           setup_help=(
+               "API token: sonarcloud.io -> your avatar -> My Account -> Security -> Generate Token. "
+               "Organization key: sonarcloud.io -> your organization -> the key in the URL "
+               "(sonarcloud.io/organizations/<key>) or Administration -> Organization settings."
+           ),
+           post_connect_hint=(
+               "To receive analysis events, add a webhook in SonarCloud: your organization (or project) -> "
+               "Administration -> Webhooks -> Create, with URL {server}/api/webhooks/sonarcloud and the "
+               "webhook_secret returned by connect() (SonarCloud signs deliveries with it via the "
+               "X-Sonar-Webhook-HMAC-SHA256 header)."
+           )),
     # Knowledge sources
     _knowledge("confluence", "Confluence", "Confluence runbooks and docs for AI context",
                IntegrationField("base_url", "Atlassian site URL", required=True),

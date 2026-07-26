@@ -414,6 +414,29 @@ class Trigger:
         self._filters["circleci_statuses"] = list(statuses)
         return self
 
+    # -- SonarCloud filters --------------------------------------------------
+
+    def sonarcloud_events(self, *types: str) -> Trigger:
+        """Restrict to SonarCloud webhook event types ("analysis.completed",
+        "analysis.failed"; ["*"] for all)."""
+        self._filters["sonarcloud_event_types"] = list(types)
+        return self
+
+    def sonarcloud_projects(self, *keys: str) -> Trigger:
+        """Scope to SonarCloud project keys (["*"] for all)."""
+        self._filters["sonarcloud_projects"] = list(keys)
+        return self
+
+    def sonarcloud_quality_gate_statuses(self, *statuses: str) -> Trigger:
+        """Restrict analysis.completed triggers by quality gate result (OK,
+        ERROR, NONE; ["*"] for any)."""
+        self._filters["sonarcloud_quality_gate_statuses"] = list(statuses)
+        return self
+
+    def sonarcloud_branches(self, *branches: str) -> Trigger:
+        self._filters["sonarcloud_branches"] = list(branches)
+        return self
+
     # -- Request filters ---------------------------------------------------
 
     def request_categories(self, *c: str) -> Trigger:
@@ -1170,6 +1193,34 @@ class Trigger:
         return Trigger("circleci", "any")
 
     # ======================================================================
+    # Factory methods — SonarCloud
+    # ======================================================================
+
+    @staticmethod
+    def sonarcloud_quality_gate_failed() -> Trigger:
+        """Analysis completed with the quality gate in ERROR."""
+        return Trigger("sonarcloud", "analysis.completed").sonarcloud_events("analysis.completed").sonarcloud_quality_gate_statuses("ERROR")
+
+    @staticmethod
+    def sonarcloud_quality_gate_passed() -> Trigger:
+        """Analysis completed with the quality gate OK."""
+        return Trigger("sonarcloud", "analysis.completed").sonarcloud_events("analysis.completed").sonarcloud_quality_gate_statuses("OK")
+
+    @staticmethod
+    def sonarcloud_analysis_completed() -> Trigger:
+        """Any completed analysis regardless of quality gate result."""
+        return Trigger("sonarcloud", "analysis.completed").sonarcloud_events("analysis.completed").sonarcloud_quality_gate_statuses("*")
+
+    @staticmethod
+    def sonarcloud_analysis_failed() -> Trigger:
+        """The analysis task itself failed (broken scanner run)."""
+        return Trigger("sonarcloud", "analysis.failed").sonarcloud_events("analysis.failed")
+
+    @staticmethod
+    def sonarcloud_any() -> Trigger:
+        return Trigger("sonarcloud", "any")
+
+    # ======================================================================
     # Factory methods — Request (Slack /kestrel-workflow)
     # ======================================================================
 
@@ -1248,6 +1299,10 @@ class Trigger:
     @staticmethod
     def request_infisical() -> Trigger:
         return Trigger("request", "any").filter(request_categories=["infisical"])
+
+    @staticmethod
+    def request_sonarcloud() -> Trigger:
+        return Trigger("request", "any").filter(request_categories=["sonarcloud"])
 
     @staticmethod
     def request_general() -> Trigger:

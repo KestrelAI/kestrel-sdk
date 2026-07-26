@@ -617,6 +617,34 @@ class Action:
     def job_name(self, jn: str) -> Action:
         return self.config("job_name", jn)
 
+    # -- SonarCloud ----------------------------------------------------------
+
+    def sonar_project(self, key: str) -> Action:
+        """SonarCloud project key (e.g. "my-org_my-repo"). Defaults to
+        "{{signal.project_key}}" from a SonarCloud trigger when unset."""
+        return self.config("project", key)
+
+    def issue_types(self, *types: str) -> Action:
+        """Restrict listed issues to types: VULNERABILITY, BUG, CODE_SMELL."""
+        return self.config("types", list(types))
+
+    def severities(self, *severities: str) -> Action:
+        """Restrict listed issues to severities: BLOCKER, CRITICAL, MAJOR,
+        MINOR, INFO."""
+        return self.config("severities", list(severities))
+
+    def max_results(self, n: Number) -> Action:
+        return self.config("max_results", n)
+
+    def hotspot_status(self, status: str) -> Action:
+        """Restrict listed hotspots by review status: TO_REVIEW or REVIEWED."""
+        return self.config("hotspot_status", status)
+
+    def metric_keys(self, keys: str) -> Action:
+        """Comma-separated SonarCloud metric keys (e.g.
+        "bugs,vulnerabilities,coverage")."""
+        return self.config("metric_keys", keys)
+
     def from_failed(self, v: bool = True) -> Action:
         return self.config("from_failed", v)
 
@@ -2193,6 +2221,30 @@ class Action:
     @staticmethod
     def circleci_investigate() -> Action:
         return Action("circleci", "circleci-investigate")
+
+    # ======================================================================
+    # Factory methods — SonarCloud
+    # ======================================================================
+
+    @staticmethod
+    def sonarcloud_get_quality_gate() -> Action:
+        """Fetch a project's quality gate status with failing conditions."""
+        return Action("sonarcloud", "sonarcloud-get-quality-gate")
+
+    @staticmethod
+    def sonarcloud_list_issues() -> Action:
+        """List open issues (bugs, vulnerabilities, code smells) on a project."""
+        return Action("sonarcloud", "sonarcloud-list-issues")
+
+    @staticmethod
+    def sonarcloud_list_hotspots() -> Action:
+        """List security hotspots awaiting review on a project."""
+        return Action("sonarcloud", "sonarcloud-list-hotspots")
+
+    @staticmethod
+    def sonarcloud_get_measures() -> Action:
+        """Fetch project metric values (bugs, coverage, duplication, ...)."""
+        return Action("sonarcloud", "sonarcloud-get-measures")
 
     # ======================================================================
     # Internal serialisation

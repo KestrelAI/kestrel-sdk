@@ -1364,6 +1364,69 @@ class TestBuilderDSL:
         assert tc["source"] == "request"
         assert tc["signals"][0]["filters"]["request_categories"] == ["circleci"]
 
+    def test_sonarcloud_actions_serialize(self):
+        """SonarCloud factories emit the right integration, action IDs, and
+        config keys."""
+        gate = Action.sonarcloud_get_quality_gate().sonar_project("my-org_api").branch("main")
+        assert gate._integration == "sonarcloud"
+        assert gate._action == "sonarcloud-get-quality-gate"
+        assert gate._config["project"] == "my-org_api"
+        assert gate._config["branch"] == "main"
+
+        issues = (
+            Action.sonarcloud_list_issues()
+            .sonar_project("{{signal.project_key}}")
+            .issue_types("VULNERABILITY", "BUG")
+            .severities("BLOCKER", "CRITICAL")
+            .max_results(100)
+        )
+        assert issues._action == "sonarcloud-list-issues"
+        assert issues._config["project"] == "{{signal.project_key}}"
+        assert issues._config["types"] == ["VULNERABILITY", "BUG"]
+        assert issues._config["severities"] == ["BLOCKER", "CRITICAL"]
+        assert issues._config["max_results"] == 100
+
+        hotspots = Action.sonarcloud_list_hotspots().sonar_project("my-org_api").hotspot_status("TO_REVIEW")
+        assert hotspots._action == "sonarcloud-list-hotspots"
+        assert hotspots._config["hotspot_status"] == "TO_REVIEW"
+
+        measures = Action.sonarcloud_get_measures().sonar_project("my-org_api").metric_keys("bugs,coverage")
+        assert measures._action == "sonarcloud-get-measures"
+        assert measures._config["metric_keys"] == "bugs,coverage"
+
+    def test_sonarcloud_triggers(self):
+        t = (
+            Trigger.sonarcloud_quality_gate_failed()
+            .sonarcloud_projects("my-org_api")
+            .sonarcloud_branches("main")
+        )
+        _, tc = Workflow("s").trigger(t).build()
+        assert tc["source"] == "sonarcloud"
+        f = tc["signals"][0]["filters"]
+        assert f["sonarcloud_event_types"] == ["analysis.completed"]
+        assert f["sonarcloud_quality_gate_statuses"] == ["ERROR"]
+        assert f["sonarcloud_projects"] == ["my-org_api"]
+        assert f["sonarcloud_branches"] == ["main"]
+
+        for factory, event, statuses in [
+            (Trigger.sonarcloud_quality_gate_passed, "analysis.completed", ["OK"]),
+            (Trigger.sonarcloud_analysis_completed, "analysis.completed", ["*"]),
+        ]:
+            trig = factory()
+            assert trig._filters["sonarcloud_event_types"] == [event]
+            assert trig._filters["sonarcloud_quality_gate_statuses"] == statuses
+
+        failed = Trigger.sonarcloud_analysis_failed()
+        assert failed._filters["sonarcloud_event_types"] == ["analysis.failed"]
+        assert "sonarcloud_quality_gate_statuses" not in failed._filters
+
+        _, tc = Workflow("any").trigger(Trigger.sonarcloud_any()).build()
+        assert tc["source"] == "sonarcloud"
+
+        _, tc = Workflow("req").trigger(Trigger.request_sonarcloud()).build()
+        assert tc["source"] == "request"
+        assert tc["signals"][0]["filters"]["request_categories"] == ["sonarcloud"]
+
     def test_condition_branching(self):
         wf = (
             Workflow("cond")
