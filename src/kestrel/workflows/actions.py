@@ -645,6 +645,29 @@ class Action:
         "bugs,vulnerabilities,coverage")."""
         return self.config("metric_keys", keys)
 
+    def new_code_only(self, v: bool = True) -> Action:
+        """Only issues introduced in the new code period (since the leak
+        period) — ideal after a quality gate failure."""
+        return self.config("new_code_only", v)
+
+    def issue_key(self, key: str) -> Action:
+        """SonarCloud issue key to act on (transition / assign / comment)."""
+        return self.config("issue_key", key)
+
+    def transition(self, t: str) -> Action:
+        """Issue workflow transition: confirm, unconfirm, reopen, resolve,
+        falsepositive, or wontfix."""
+        return self.config("transition", t)
+
+    def hotspot_key(self, key: str) -> Action:
+        """SonarCloud security hotspot key to review."""
+        return self.config("hotspot_key", key)
+
+    def hotspot_resolution(self, resolution: str) -> Action:
+        """Hotspot review outcome when marking REVIEWED: SAFE, FIXED, or
+        ACKNOWLEDGED."""
+        return self.config("resolution", resolution)
+
     def from_failed(self, v: bool = True) -> Action:
         return self.config("from_failed", v)
 
@@ -2245,6 +2268,28 @@ class Action:
     def sonarcloud_get_measures() -> Action:
         """Fetch project metric values (bugs, coverage, duplication, ...)."""
         return Action("sonarcloud", "sonarcloud-get-measures")
+
+    @staticmethod
+    def sonarcloud_transition_issue() -> Action:
+        """Apply an issue workflow transition (confirm, resolve, reopen,
+        falsepositive, wontfix)."""
+        return Action("sonarcloud", "sonarcloud-transition-issue")
+
+    @staticmethod
+    def sonarcloud_assign_issue() -> Action:
+        """Assign a SonarCloud issue to a user (empty assignee unassigns)."""
+        return Action("sonarcloud", "sonarcloud-assign-issue")
+
+    @staticmethod
+    def sonarcloud_comment_issue() -> Action:
+        """Add a comment to a SonarCloud issue."""
+        return Action("sonarcloud", "sonarcloud-comment-issue")
+
+    @staticmethod
+    def sonarcloud_review_hotspot() -> Action:
+        """Change a security hotspot's review status (SAFE / FIXED /
+        ACKNOWLEDGED, or back TO_REVIEW)."""
+        return Action("sonarcloud", "sonarcloud-review-hotspot")
 
     # ======================================================================
     # Internal serialisation

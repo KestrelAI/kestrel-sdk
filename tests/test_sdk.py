@@ -1378,12 +1378,14 @@ class TestBuilderDSL:
             .sonar_project("{{signal.project_key}}")
             .issue_types("VULNERABILITY", "BUG")
             .severities("BLOCKER", "CRITICAL")
+            .new_code_only()
             .max_results(100)
         )
         assert issues._action == "sonarcloud-list-issues"
         assert issues._config["project"] == "{{signal.project_key}}"
         assert issues._config["types"] == ["VULNERABILITY", "BUG"]
         assert issues._config["severities"] == ["BLOCKER", "CRITICAL"]
+        assert issues._config["new_code_only"] is True
         assert issues._config["max_results"] == 100
 
         hotspots = Action.sonarcloud_list_hotspots().sonar_project("my-org_api").hotspot_status("TO_REVIEW")
@@ -1393,6 +1395,37 @@ class TestBuilderDSL:
         measures = Action.sonarcloud_get_measures().sonar_project("my-org_api").metric_keys("bugs,coverage")
         assert measures._action == "sonarcloud-get-measures"
         assert measures._config["metric_keys"] == "bugs,coverage"
+
+    def test_sonarcloud_triage_actions_serialize(self):
+        """SonarCloud triage (write) factories emit the right action IDs and
+        config keys."""
+        transition = Action.sonarcloud_transition_issue().issue_key("{{item.key}}").transition("falsepositive")
+        assert transition._integration == "sonarcloud"
+        assert transition._action == "sonarcloud-transition-issue"
+        assert transition._config["issue_key"] == "{{item.key}}"
+        assert transition._config["transition"] == "falsepositive"
+
+        assign = Action.sonarcloud_assign_issue().issue_key("ISSUE-1").assignee("alice")
+        assert assign._action == "sonarcloud-assign-issue"
+        assert assign._config["issue_key"] == "ISSUE-1"
+        assert assign._config["assignee"] == "alice"
+
+        comment = Action.sonarcloud_comment_issue().issue_key("ISSUE-1").comment("Triaged by Kestrel")
+        assert comment._action == "sonarcloud-comment-issue"
+        assert comment._config["comment"] == "Triaged by Kestrel"
+
+        review = (
+            Action.sonarcloud_review_hotspot()
+            .hotspot_key("{{item.key}}")
+            .hotspot_status("REVIEWED")
+            .hotspot_resolution("SAFE")
+            .comment("Reviewed via workflow")
+        )
+        assert review._action == "sonarcloud-review-hotspot"
+        assert review._config["hotspot_key"] == "{{item.key}}"
+        assert review._config["hotspot_status"] == "REVIEWED"
+        assert review._config["resolution"] == "SAFE"
+        assert review._config["comment"] == "Reviewed via workflow"
 
     def test_sonarcloud_triggers(self):
         t = (
