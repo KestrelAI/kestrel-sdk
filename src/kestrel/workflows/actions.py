@@ -668,6 +668,41 @@ class Action:
         ACKNOWLEDGED."""
         return self.config("resolution", resolution)
 
+    # -- Okta ----------------------------------------------------------------
+
+    def okta_user(self, user: str) -> Action:
+        """Okta user (login, email, or ID). Defaults to
+        "{{signal.target_user}}" from an Okta trigger when unset."""
+        return self.config("user", user)
+
+    def okta_group(self, group: str) -> Action:
+        """Okta group (name or ID)."""
+        return self.config("group", group)
+
+    def okta_user_status(self, status: str) -> Action:
+        """Restrict listed users by lifecycle status (ACTIVE, LOCKED_OUT,
+        SUSPENDED, PASSWORD_EXPIRED, PROVISIONED, DEPROVISIONED)."""
+        return self.config("user_status", status)
+
+    def okta_event_types(self, types: str) -> Action:
+        """Comma-separated Okta System Log event types to query (e.g.
+        "user.account.lock,user.session.start")."""
+        return self.config("event_types", types)
+
+    def search(self, keyword: str) -> Action:
+        """Free-text keyword filter (Okta System Log queries: matches actor,
+        target, IP, etc.)."""
+        return self.config("search", keyword)
+
+    def since_hours(self, n: Number) -> Action:
+        """How many hours of Okta System Log history to query (up to 168)."""
+        return self.config("since_hours", n)
+
+    def revoke_oauth_tokens(self, v: bool = True) -> Action:
+        """Also revoke the user's OIDC/OAuth access and refresh tokens when
+        clearing sessions."""
+        return self.config("revoke_oauth_tokens", v)
+
     def from_failed(self, v: bool = True) -> Action:
         return self.config("from_failed", v)
 
@@ -2290,6 +2325,86 @@ class Action:
         """Change a security hotspot's review status (SAFE / FIXED /
         ACKNOWLEDGED, or back TO_REVIEW)."""
         return Action("sonarcloud", "sonarcloud-review-hotspot")
+
+    # ======================================================================
+    # Factory methods — Okta
+    # ======================================================================
+
+    @staticmethod
+    def okta_get_user() -> Action:
+        """Fetch an Okta user's profile and status. Config: user (defaults
+        to {{signal.target_user}})."""
+        return Action("okta", "okta-get-user")
+
+    @staticmethod
+    def okta_list_users() -> Action:
+        """Search Okta users by name/email prefix and/or lifecycle status.
+        Config: query, user_status, max_results."""
+        return Action("okta", "okta-list-users")
+
+    @staticmethod
+    def okta_query_system_log() -> Action:
+        """Query the Okta System Log for recent security events. Config:
+        event_types, search, since_hours, max_results."""
+        return Action("okta", "okta-query-system-log")
+
+    @staticmethod
+    def okta_list_user_groups() -> Action:
+        """List the groups an Okta user belongs to. Config: user."""
+        return Action("okta", "okta-list-user-groups")
+
+    @staticmethod
+    def okta_list_group_members() -> Action:
+        """List the users in an Okta group. Config: group, max_results."""
+        return Action("okta", "okta-list-group-members")
+
+    @staticmethod
+    def okta_suspend_user() -> Action:
+        """Suspend an Okta user (reversible; keeps assignments). Config: user."""
+        return Action("okta", "okta-suspend-user")
+
+    @staticmethod
+    def okta_unsuspend_user() -> Action:
+        """Return a suspended Okta user to ACTIVE. Config: user."""
+        return Action("okta", "okta-unsuspend-user")
+
+    @staticmethod
+    def okta_unlock_user() -> Action:
+        """Unlock a LOCKED_OUT Okta user. Config: user."""
+        return Action("okta", "okta-unlock-user")
+
+    @staticmethod
+    def okta_deactivate_user() -> Action:
+        """Deactivate an Okta user (DEPROVISIONED; not simply reversible).
+        Config: user."""
+        return Action("okta", "okta-deactivate-user")
+
+    @staticmethod
+    def okta_clear_sessions() -> Action:
+        """Revoke all of a user's active Okta sessions. Config: user,
+        revoke_oauth_tokens."""
+        return Action("okta", "okta-clear-sessions")
+
+    @staticmethod
+    def okta_expire_password() -> Action:
+        """Expire an Okta user's password (must reset at next sign-in).
+        Config: user."""
+        return Action("okta", "okta-expire-password")
+
+    @staticmethod
+    def okta_reset_mfa() -> Action:
+        """Reset all of a user's enrolled MFA factors. Config: user."""
+        return Action("okta", "okta-reset-mfa")
+
+    @staticmethod
+    def okta_add_user_to_group() -> Action:
+        """Add an Okta user to a group. Config: user, group."""
+        return Action("okta", "okta-add-user-to-group")
+
+    @staticmethod
+    def okta_remove_user_from_group() -> Action:
+        """Remove an Okta user from a group. Config: user, group."""
+        return Action("okta", "okta-remove-user-from-group")
 
     # ======================================================================
     # Internal serialisation

@@ -437,6 +437,41 @@ class Trigger:
         self._filters["sonarcloud_branches"] = list(branches)
         return self
 
+    # -- Okta filters --------------------------------------------------------
+
+    def okta_events(self, *types: str) -> Trigger:
+        """Restrict to Okta System Log event types (e.g. "user.account.lock",
+        "group.user_membership.add"; ["*"] for all the trigger detects)."""
+        self._filters["okta_event_types"] = list(types)
+        return self
+
+    def okta_target_users(self, *users: str) -> Trigger:
+        """Scope to events about specific users by login/email (["*"] for all)."""
+        self._filters["okta_target_users"] = list(users)
+        return self
+
+    def okta_actors(self, *actors: str) -> Trigger:
+        """Scope to events performed by specific admins/users by login/email
+        (["*"] for any actor)."""
+        self._filters["okta_actors"] = list(actors)
+        return self
+
+    def okta_target_groups(self, *groups: str) -> Trigger:
+        """For group membership events, scope to specific group names
+        (e.g. "Okta Administrators"; ["*"] for any group)."""
+        self._filters["okta_target_groups"] = list(groups)
+        return self
+
+    def okta_outcomes(self, *outcomes: str) -> Trigger:
+        """Restrict by event outcome (SUCCESS, FAILURE; ["*"] for both)."""
+        self._filters["okta_outcomes"] = list(outcomes)
+        return self
+
+    def okta_poll_interval(self, interval: str) -> Trigger:
+        """How often Kestrel tails the Okta System Log ("1m", "5m", "15m", "30m")."""
+        self._filters["okta_poll_interval"] = interval
+        return self
+
     # -- Request filters ---------------------------------------------------
 
     def request_categories(self, *c: str) -> Trigger:
@@ -1221,6 +1256,68 @@ class Trigger:
         return Trigger("sonarcloud", "any")
 
     # ======================================================================
+    # Factory methods — Okta
+    # ======================================================================
+
+    @staticmethod
+    def okta_user_locked_out() -> Trigger:
+        """User locked out after repeated failed sign-ins (brute-force indicator)."""
+        return Trigger("okta", "user.account.lock").okta_events("user.account.lock")
+
+    @staticmethod
+    def okta_suspicious_activity() -> Trigger:
+        """End-user reported suspicious activity or Okta ThreatInsight detected a threat."""
+        return Trigger("okta", "user.account.report_suspicious_activity_by_enduser").okta_events(
+            "user.account.report_suspicious_activity_by_enduser", "security.threat.detected"
+        )
+
+    @staticmethod
+    def okta_admin_privilege_granted() -> Trigger:
+        """A user was granted an admin role."""
+        return Trigger("okta", "user.account.privilege.grant").okta_events("user.account.privilege.grant")
+
+    @staticmethod
+    def okta_mfa_factor_changed() -> Trigger:
+        """A user's MFA factor was deactivated or all factors were reset."""
+        return Trigger("okta", "user.mfa.factor.deactivate").okta_events(
+            "user.mfa.factor.deactivate", "user.mfa.factor.reset_all"
+        )
+
+    @staticmethod
+    def okta_user_created() -> Trigger:
+        """A new user was created in Okta."""
+        return Trigger("okta", "user.lifecycle.create").okta_events("user.lifecycle.create")
+
+    @staticmethod
+    def okta_user_deactivated() -> Trigger:
+        """A user was deactivated or suspended."""
+        return Trigger("okta", "user.lifecycle.deactivate").okta_events(
+            "user.lifecycle.deactivate", "user.lifecycle.suspend"
+        )
+
+    @staticmethod
+    def okta_group_membership_changed(*groups: str) -> Trigger:
+        """A user was added to or removed from a group. Optionally scope to
+        specific group names (e.g. "Okta Administrators")."""
+        t = Trigger("okta", "group.user_membership.add").okta_events(
+            "group.user_membership.add", "group.user_membership.remove"
+        )
+        if groups:
+            t = t.okta_target_groups(*groups)
+        return t
+
+    @staticmethod
+    def okta_app_assignment_changed() -> Trigger:
+        """A user was assigned to or removed from an application."""
+        return Trigger("okta", "application.user_membership.add").okta_events(
+            "application.user_membership.add", "application.user_membership.remove"
+        )
+
+    @staticmethod
+    def okta_any() -> Trigger:
+        return Trigger("okta", "any")
+
+    # ======================================================================
     # Factory methods — Request (Slack /kestrel-workflow)
     # ======================================================================
 
@@ -1303,6 +1400,10 @@ class Trigger:
     @staticmethod
     def request_sonarcloud() -> Trigger:
         return Trigger("request", "any").filter(request_categories=["sonarcloud"])
+
+    @staticmethod
+    def request_okta() -> Trigger:
+        return Trigger("request", "any").filter(request_categories=["okta"])
 
     @staticmethod
     def request_general() -> Trigger:

@@ -1460,6 +1460,115 @@ class TestBuilderDSL:
         assert tc["source"] == "request"
         assert tc["signals"][0]["filters"]["request_categories"] == ["sonarcloud"]
 
+    def test_okta_actions_serialize(self):
+        """Okta factories emit the right integration, action IDs, and config
+        keys."""
+        get_user = Action.okta_get_user().okta_user("{{signal.target_user}}")
+        assert get_user._integration == "okta"
+        assert get_user._action == "okta-get-user"
+        assert get_user._config["user"] == "{{signal.target_user}}"
+
+        users = (
+            Action.okta_list_users()
+            .query("alice")
+            .okta_user_status("LOCKED_OUT")
+            .max_results(100)
+        )
+        assert users._action == "okta-list-users"
+        assert users._config["query"] == "alice"
+        assert users._config["user_status"] == "LOCKED_OUT"
+        assert users._config["max_results"] == 100
+
+        log = (
+            Action.okta_query_system_log()
+            .okta_event_types("user.account.lock,user.session.start")
+            .search("{{signal.target_user}}")
+            .since_hours(48)
+            .max_results(200)
+        )
+        assert log._action == "okta-query-system-log"
+        assert log._config["event_types"] == "user.account.lock,user.session.start"
+        assert log._config["search"] == "{{signal.target_user}}"
+        assert log._config["since_hours"] == 48
+        assert log._config["max_results"] == 200
+
+        groups = Action.okta_list_user_groups().okta_user("alice@example.com")
+        assert groups._action == "okta-list-user-groups"
+        assert groups._config["user"] == "alice@example.com"
+
+        members = Action.okta_list_group_members().okta_group("Okta Administrators").max_results(50)
+        assert members._action == "okta-list-group-members"
+        assert members._config["group"] == "Okta Administrators"
+        assert members._config["max_results"] == 50
+
+    def test_okta_response_actions_serialize(self):
+        """Okta response (write) factories emit the right action IDs and
+        config keys."""
+        for factory, action_id in [
+            (Action.okta_suspend_user, "okta-suspend-user"),
+            (Action.okta_unsuspend_user, "okta-unsuspend-user"),
+            (Action.okta_unlock_user, "okta-unlock-user"),
+            (Action.okta_deactivate_user, "okta-deactivate-user"),
+            (Action.okta_expire_password, "okta-expire-password"),
+            (Action.okta_reset_mfa, "okta-reset-mfa"),
+        ]:
+            a = factory().okta_user("{{signal.target_user}}")
+            assert a._integration == "okta"
+            assert a._action == action_id
+            assert a._config["user"] == "{{signal.target_user}}"
+
+        clear = Action.okta_clear_sessions().okta_user("alice").revoke_oauth_tokens()
+        assert clear._action == "okta-clear-sessions"
+        assert clear._config["user"] == "alice"
+        assert clear._config["revoke_oauth_tokens"] is True
+
+        add = Action.okta_add_user_to_group().okta_user("alice").okta_group("Quarantine")
+        assert add._action == "okta-add-user-to-group"
+        assert add._config["user"] == "alice"
+        assert add._config["group"] == "Quarantine"
+
+        remove = Action.okta_remove_user_from_group().okta_user("{{signal.target_user}}").okta_group("{{signal.target_group}}")
+        assert remove._action == "okta-remove-user-from-group"
+        assert remove._config["group"] == "{{signal.target_group}}"
+
+    def test_okta_triggers(self):
+        t = (
+            Trigger.okta_group_membership_changed("Okta Administrators")
+            .okta_actors("admin@example.com")
+            .okta_outcomes("SUCCESS")
+            .okta_poll_interval("1m")
+        )
+        _, tc = Workflow("o").trigger(t).build()
+        assert tc["source"] == "okta"
+        f = tc["signals"][0]["filters"]
+        assert f["okta_event_types"] == ["group.user_membership.add", "group.user_membership.remove"]
+        assert f["okta_target_groups"] == ["Okta Administrators"]
+        assert f["okta_actors"] == ["admin@example.com"]
+        assert f["okta_outcomes"] == ["SUCCESS"]
+        assert f["okta_poll_interval"] == "1m"
+
+        for factory, events in [
+            (Trigger.okta_user_locked_out, ["user.account.lock"]),
+            (Trigger.okta_suspicious_activity, ["user.account.report_suspicious_activity_by_enduser", "security.threat.detected"]),
+            (Trigger.okta_admin_privilege_granted, ["user.account.privilege.grant"]),
+            (Trigger.okta_mfa_factor_changed, ["user.mfa.factor.deactivate", "user.mfa.factor.reset_all"]),
+            (Trigger.okta_user_created, ["user.lifecycle.create"]),
+            (Trigger.okta_user_deactivated, ["user.lifecycle.deactivate", "user.lifecycle.suspend"]),
+            (Trigger.okta_app_assignment_changed, ["application.user_membership.add", "application.user_membership.remove"]),
+        ]:
+            trig = factory()
+            assert trig._filters["okta_event_types"] == events
+
+        locked = Trigger.okta_user_locked_out().okta_target_users("alice@example.com")
+        assert locked._filters["okta_target_users"] == ["alice@example.com"]
+
+        _, tc = Workflow("any").trigger(Trigger.okta_any()).build()
+        assert tc["source"] == "okta"
+
+        _, tc = Workflow("req").trigger(Trigger.request_okta()).build()
+        assert tc["source"] == "request"
+        assert tc["signals"][0]["filters"]["request_categories"] == ["okta"]
+
     def test_condition_branching(self):
         wf = (
             Workflow("cond")

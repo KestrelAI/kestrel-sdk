@@ -359,6 +359,17 @@ REGISTRY: tuple[IntegrationSpec, ...] = (
                "webhook_secret returned by connect() (SonarCloud signs deliveries with it via the "
                "X-Sonar-Webhook-HMAC-SHA256 header)."
            )),
+    _token("okta", "Okta", "Okta identity security: users, groups, sessions, and System Log triggers",
+           IntegrationField("org_url", "Okta org URL (https://your-org.okta.com)", required=True),
+           IntegrationField("api_token", "Okta API token (SSWS)", required=True, secret=True),
+           setup_help=(
+               "API token (SSWS): Okta Admin Console -> Security -> API -> Tokens -> Create token. "
+               "Org URL: your Okta domain, e.g. https://your-org.okta.com (shown in the Admin Console "
+               "header). The token inherits the permissions of the admin who created it; a read-only "
+               "admin token works for triggers and read blocks, while lifecycle/session blocks need a "
+               "super admin or org admin token. No webhooks needed — Kestrel polls the Okta System Log "
+               "for security events."
+           )),
     # Knowledge sources
     _knowledge("confluence", "Confluence", "Confluence runbooks and docs for AI context",
                IntegrationField("base_url", "Atlassian site URL", required=True),
