@@ -354,8 +354,9 @@ REGISTRY: tuple[IntegrationSpec, ...] = (
                "(sonarcloud.io/organizations/<key>) or Administration -> Organization settings."
            ),
            post_connect_hint=(
-               "To receive analysis events, add a webhook in SonarCloud: your organization (or project) -> "
-               "Administration -> Webhooks -> Create, with URL {server}/api/webhooks/sonarcloud and the "
+               "To receive analysis events, add a webhook in SonarCloud: open your organization and select "
+               "Webhooks in the left sidebar (for a single project: Administration -> Webhooks), then Create, "
+               "with URL {server}/api/webhooks/sonarcloud and the "
                "webhook_secret returned by connect() (SonarCloud signs deliveries with it via the "
                "X-Sonar-Webhook-HMAC-SHA256 header)."
            )),
