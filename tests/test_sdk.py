@@ -844,6 +844,18 @@ class TestBuilderDSL:
         assert delete._config["policy_name"] == "require-labels"
         assert delete._config["namespace"] == "payments"
 
+        investigate = (
+            Action.kyverno_investigate()
+            .cluster_id("c1")
+            .query("why was this deployment blocked?")
+            .max_iterations(5)
+        )
+        assert investigate._action == "kyverno-investigate"
+        assert investigate._integration == "kyverno"
+        assert investigate._config["cluster_id"] == "c1"
+        assert investigate._config["query"] == "why was this deployment blocked?"
+        assert investigate._config["max_iterations"] == 5
+
         for factory, action_id in [
             (Action.kyverno_list_policies, "kyverno-list-policies"),
             (Action.kyverno_get_policy, "kyverno-get-policy"),
@@ -1506,6 +1518,16 @@ class TestBuilderDSL:
         assert review._config["resolution"] == "SAFE"
         assert review._config["comment"] == "Reviewed via workflow"
 
+        investigate = (
+            Action.sonarcloud_investigate()
+            .query("why did the quality gate fail?")
+            .max_iterations(5)
+        )
+        assert investigate._action == "sonarcloud-investigate"
+        assert investigate._integration == "sonarcloud"
+        assert investigate._config["query"] == "why did the quality gate fail?"
+        assert investigate._config["max_iterations"] == 5
+
     def test_sonarcloud_triggers(self):
         t = (
             Trigger.sonarcloud_quality_gate_failed()
@@ -1609,6 +1631,16 @@ class TestBuilderDSL:
         remove = Action.okta_remove_user_from_group().okta_user("{{signal.target_user}}").okta_group("{{signal.target_group}}")
         assert remove._action == "okta-remove-user-from-group"
         assert remove._config["group"] == "{{signal.target_group}}"
+
+        investigate = (
+            Action.okta_investigate()
+            .query("is this account lockout suspicious?")
+            .max_iterations(5)
+        )
+        assert investigate._action == "okta-investigate"
+        assert investigate._integration == "okta"
+        assert investigate._config["query"] == "is this account lockout suspicious?"
+        assert investigate._config["max_iterations"] == 5
 
     def test_okta_triggers(self):
         t = (

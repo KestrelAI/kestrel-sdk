@@ -1183,6 +1183,11 @@ class Action:
     def kyverno_delete_policy() -> Action:
         return Action("kyverno", "kyverno-delete-policy")
 
+    @staticmethod
+    def kyverno_investigate() -> Action:
+        """AI investigation of Kyverno policies and violations (read-only)."""
+        return Action("kyverno", "kyverno-investigate")
+
     # ======================================================================
     # Factory methods — Helm
     # ======================================================================
@@ -2378,6 +2383,12 @@ class Action:
         ACKNOWLEDGED, or back TO_REVIEW)."""
         return Action("sonarcloud", "sonarcloud-review-hotspot")
 
+    @staticmethod
+    def sonarcloud_investigate() -> Action:
+        """AI investigation of SonarCloud quality gates, issues, hotspots,
+        and metrics (read-only)."""
+        return Action("sonarcloud", "sonarcloud-investigate")
+
     # ======================================================================
     # Factory methods — Okta
     # ======================================================================
@@ -2457,6 +2468,12 @@ class Action:
     def okta_remove_user_from_group() -> Action:
         """Remove an Okta user from a group. Config: user, group."""
         return Action("okta", "okta-remove-user-from-group")
+
+    @staticmethod
+    def okta_investigate() -> Action:
+        """AI investigation of Okta users, groups, MFA factors, and System
+        Log activity (read-only)."""
+        return Action("okta", "okta-investigate")
 
     # ======================================================================
     # Internal serialisation
