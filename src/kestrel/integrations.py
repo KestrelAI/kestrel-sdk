@@ -349,7 +349,7 @@ REGISTRY: tuple[IntegrationSpec, ...] = (
            IntegrationField("organization", "SonarCloud organization key", required=True),
            IntegrationField("api_token", "SonarCloud API token", required=True, secret=True),
            setup_help=(
-               "API token: sonarcloud.io -> your avatar -> My Account -> Security -> Generate Token. "
+               "API token: sonarcloud.io -> your avatar -> My Account -> Access Tokens -> Generate Token. "
                "Organization key: sonarcloud.io -> your organization -> the key in the URL "
                "(sonarcloud.io/organizations/<key>) or Administration -> Organization settings."
            ),
