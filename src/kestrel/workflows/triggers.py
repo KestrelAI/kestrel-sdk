@@ -488,6 +488,22 @@ class Trigger:
         self._filters["kyverno_severities"] = list(severities)
         return self
 
+    # -- Trivy filters -------------------------------------------------------
+    # Cluster/namespace scoping uses the generic .cluster() / .namespace()
+    # helpers since Trivy signals ride the Kubernetes event pipeline.
+
+    def trivy_severities(self, *severities: str) -> Trigger:
+        """Restrict by finding severity (critical, high, medium, low;
+        ["*"] for any)."""
+        self._filters["trivy_severities"] = list(severities)
+        return self
+
+    def trivy_resource_kinds(self, *kinds: str) -> Trigger:
+        """Restrict by scanned resource kind (Deployment, StatefulSet,
+        DaemonSet, CronJob, Job, Pod, Role, ClusterRole; ["*"] for any)."""
+        self._filters["trivy_resource_kinds"] = list(kinds)
+        return self
+
     # -- Request filters ---------------------------------------------------
 
     def request_categories(self, *c: str) -> Trigger:
@@ -849,6 +865,37 @@ class Trigger:
     @staticmethod
     def kyverno_any() -> Trigger:
         return Trigger("kyverno", "any")
+
+    # ======================================================================
+    # Factory methods — Trivy
+    # ======================================================================
+
+    @staticmethod
+    def trivy_vulnerability_detected() -> Trigger:
+        """trivy-operator found new or changed image CVEs in a workload's
+        VulnerabilityReport."""
+        return Trigger("trivy", "vulnerability.detected")
+
+    @staticmethod
+    def trivy_exposed_secret_detected() -> Trigger:
+        """trivy-operator found a secret baked into a container image."""
+        return Trigger("trivy", "secret.exposed")
+
+    @staticmethod
+    def trivy_config_audit_failed() -> Trigger:
+        """trivy-operator found failed security checks on a workload or
+        RBAC object."""
+        return Trigger("trivy", "configaudit.failed")
+
+    @staticmethod
+    def trivy_compliance_failed() -> Trigger:
+        """A trivy-operator cluster compliance report (CIS, NSA, PSS) has
+        failing controls."""
+        return Trigger("trivy", "compliance.failed")
+
+    @staticmethod
+    def trivy_any() -> Trigger:
+        return Trigger("trivy", "any")
 
     # ======================================================================
     # Factory methods — Supabase
@@ -1395,6 +1442,10 @@ class Trigger:
     @staticmethod
     def request_kyverno() -> Trigger:
         return Trigger("request", "any").filter(request_categories=["kyverno"])
+
+    @staticmethod
+    def request_trivy() -> Trigger:
+        return Trigger("request", "any").filter(request_categories=["trivy"])
 
     @staticmethod
     def request_github() -> Trigger:

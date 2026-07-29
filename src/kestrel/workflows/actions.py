@@ -365,6 +365,29 @@ class Action:
         """Full ClusterPolicy/Policy manifest (YAML or JSON)."""
         return self.config("policy_spec", manifest)
 
+    # -- Trivy ---------------------------------------------------------------
+    # cluster_id() / ns() / severity() / resource_kind() / max_results() are
+    # shared helpers.
+
+    def workload(self, w: str) -> Action:
+        """The scanned workload — accepts "kind/name" (e.g. deployment/nginx)
+        or just the workload name."""
+        return self.config("workload", w)
+
+    def fixed_only(self, v: bool = True) -> Action:
+        """Only include CVEs that have a fixed version available."""
+        return self.config("fixed_only", v)
+
+    def report_kind(self, kind: str) -> Action:
+        """Which trivy-operator report kinds to aggregate ("config-audit",
+        "rbac-assessment", "infra-assessment", or "all")."""
+        return self.config("report_kind", kind)
+
+    def report_name(self, name: str) -> Action:
+        """The ClusterComplianceReport to read (e.g. "cis", "nsa",
+        "pss-baseline", "pss-restricted")."""
+        return self.config("report_name", name)
+
     # -- Fly.io ------------------------------------------------------------
 
     def machine_id(self, mid: str) -> Action:
@@ -1187,6 +1210,41 @@ class Action:
     def kyverno_investigate() -> Action:
         """AI investigation of Kyverno policies and violations (read-only)."""
         return Action("kyverno", "kyverno-investigate")
+
+    # ======================================================================
+    # Factory methods — Trivy
+    # ======================================================================
+
+    @staticmethod
+    def trivy_list_vulnerabilities() -> Action:
+        return Action("trivy", "trivy-list-vulnerabilities")
+
+    @staticmethod
+    def trivy_get_vulnerability_report() -> Action:
+        return Action("trivy", "trivy-get-vulnerability-report")
+
+    @staticmethod
+    def trivy_list_exposed_secrets() -> Action:
+        return Action("trivy", "trivy-list-exposed-secrets")
+
+    @staticmethod
+    def trivy_list_misconfigurations() -> Action:
+        return Action("trivy", "trivy-list-misconfigurations")
+
+    @staticmethod
+    def trivy_get_compliance_report() -> Action:
+        return Action("trivy", "trivy-get-compliance-report")
+
+    @staticmethod
+    def trivy_rescan_workload() -> Action:
+        """Force trivy-operator to rescan a workload by deleting its
+        VulnerabilityReports."""
+        return Action("trivy", "trivy-rescan-workload")
+
+    @staticmethod
+    def trivy_investigate() -> Action:
+        """AI investigation of Trivy scan results (read-only)."""
+        return Action("trivy", "trivy-investigate")
 
     # ======================================================================
     # Factory methods — Helm

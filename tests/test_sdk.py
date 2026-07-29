@@ -893,6 +893,102 @@ class TestBuilderDSL:
             assert filters["kyverno_policies"] == ["disallow-privileged-containers"]
             assert filters["kyverno_severities"] == ["critical", "high"]
 
+    def test_trivy_actions(self):
+        """Trivy factories emit the right integration, action IDs, and
+        config keys."""
+        vulns = (
+            Action.trivy_list_vulnerabilities()
+            .cluster_id("c1")
+            .ns("payments")
+            .workload("deployment/nginx")
+            .severity("critical,high")
+            .fixed_only()
+            .max_results(50)
+        )
+        assert vulns._integration == "trivy"
+        assert vulns._action == "trivy-list-vulnerabilities"
+        assert vulns._config["cluster_id"] == "c1"
+        assert vulns._config["namespace"] == "payments"
+        assert vulns._config["workload"] == "deployment/nginx"
+        assert vulns._config["severity"] == "critical,high"
+        assert vulns._config["fixed_only"] is True
+        assert vulns._config["max_results"] == 50
+
+        report = (
+            Action.trivy_get_vulnerability_report()
+            .cluster_id("c1")
+            .ns("payments")
+            .workload("deployment/nginx")
+        )
+        assert report._action == "trivy-get-vulnerability-report"
+        assert report._config["workload"] == "deployment/nginx"
+        assert report._config["namespace"] == "payments"
+
+        misconfigs = (
+            Action.trivy_list_misconfigurations()
+            .cluster_id("c1")
+            .resource_kind("Deployment")
+            .report_kind("config-audit")
+        )
+        assert misconfigs._action == "trivy-list-misconfigurations"
+        assert misconfigs._config["resource_kind"] == "Deployment"
+        assert misconfigs._config["report_kind"] == "config-audit"
+
+        compliance = Action.trivy_get_compliance_report().cluster_id("c1").report_name("cis")
+        assert compliance._action == "trivy-get-compliance-report"
+        assert compliance._config["report_name"] == "cis"
+
+        rescan = Action.trivy_rescan_workload().cluster_id("c1").ns("payments").workload("nginx")
+        assert rescan._action == "trivy-rescan-workload"
+        assert rescan._config["workload"] == "nginx"
+        assert rescan._config["namespace"] == "payments"
+
+        investigate = (
+            Action.trivy_investigate()
+            .cluster_id("c1")
+            .query("which workloads ship critical CVEs with fixes available?")
+            .max_iterations(5)
+        )
+        assert investigate._action == "trivy-investigate"
+        assert investigate._integration == "trivy"
+        assert investigate._config["query"].startswith("which workloads")
+        assert investigate._config["max_iterations"] == 5
+
+        secrets = Action.trivy_list_exposed_secrets().cluster_id("c1")
+        assert secrets._integration == "trivy"
+        assert secrets._action == "trivy-list-exposed-secrets"
+
+    def test_trivy_triggers(self):
+        _, t = Workflow("t").trigger(Trigger.request_trivy()).build()
+        assert t["source"] == "request"
+        assert t["signals"][0]["filters"]["request_categories"] == ["trivy"]
+
+        for factory, signal_type in [
+            (Trigger.trivy_vulnerability_detected, "vulnerability.detected"),
+            (Trigger.trivy_exposed_secret_detected, "secret.exposed"),
+            (Trigger.trivy_config_audit_failed, "configaudit.failed"),
+            (Trigger.trivy_compliance_failed, "compliance.failed"),
+            (Trigger.trivy_any, "any"),
+        ]:
+            _, t = (
+                Workflow("t")
+                .trigger(
+                    factory()
+                    .cluster("c1")
+                    .namespace("payments")
+                    .trivy_severities("critical", "high")
+                    .trivy_resource_kinds("Deployment")
+                )
+                .build()
+            )
+            assert t["source"] == "trivy"
+            assert t["signals"][0]["signal_type"] == signal_type
+            filters = t["signals"][0]["filters"]
+            assert filters["cluster_ids"] == ["c1"]
+            assert filters["namespaces"] == ["payments"]
+            assert filters["trivy_severities"] == ["critical", "high"]
+            assert filters["trivy_resource_kinds"] == ["Deployment"]
+
     def test_terraform_actions(self):
         """Terraform Cloud factories emit the right integration, action IDs,
         and config keys."""
