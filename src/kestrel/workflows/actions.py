@@ -736,6 +736,36 @@ class Action:
         "user.account.lock,user.session.start")."""
         return self.config("event_types", types)
 
+    # -- Databricks ------------------------------------------------------------
+
+    def databricks_job(self, job_id: str) -> Action:
+        """Databricks job ID. Defaults to "{{signal.job_id}}" from a
+        Databricks trigger when unset."""
+        return self.config("job_id", job_id)
+
+    def databricks_run(self, run_id: str) -> Action:
+        """Databricks job run ID. Defaults to "{{signal.run_id}}" from a
+        Databricks trigger when unset."""
+        return self.config("run_id", run_id)
+
+    def databricks_cluster(self, cluster_id: str) -> Action:
+        """Databricks cluster ID. Defaults to "{{signal.cluster_id}}" from a
+        Databricks trigger when unset."""
+        return self.config("cluster_id", cluster_id)
+
+    def databricks_pipeline(self, pipeline_id: str) -> Action:
+        """Delta Live Tables pipeline ID. Defaults to
+        "{{signal.pipeline_id}}" from a Databricks trigger when unset."""
+        return self.config("pipeline_id", pipeline_id)
+
+    def databricks_warehouse(self, warehouse_id: str) -> Action:
+        """Databricks SQL warehouse ID."""
+        return self.config("warehouse_id", warehouse_id)
+
+    def databricks_statement(self, statement: str) -> Action:
+        """SQL statement to execute on the selected SQL warehouse."""
+        return self.config("statement", statement)
+
     def search(self, keyword: str) -> Action:
         """Free-text keyword filter (Okta System Log queries: matches actor,
         target, IP, etc.)."""
@@ -2532,6 +2562,115 @@ class Action:
         """AI investigation of Okta users, groups, MFA factors, and System
         Log activity (read-only)."""
         return Action("okta", "okta-investigate")
+
+    # ======================================================================
+    # Factory methods — Databricks
+    # ======================================================================
+
+    @staticmethod
+    def databricks_list_jobs() -> Action:
+        """List the Databricks jobs in the workspace."""
+        return Action("databricks", "databricks-list-jobs")
+
+    @staticmethod
+    def databricks_run_job() -> Action:
+        """Trigger a run of a Databricks job. Config: job_id (defaults to
+        {{signal.job_id}}), job_parameters (JSON object string)."""
+        return Action("databricks", "databricks-run-job")
+
+    @staticmethod
+    def databricks_get_run() -> Action:
+        """Fetch a job run's lifecycle/result state, duration, and task
+        states. Config: run_id (defaults to {{signal.run_id}})."""
+        return Action("databricks", "databricks-get-run")
+
+    @staticmethod
+    def databricks_get_run_output() -> Action:
+        """Fetch a run's error, stack trace, and notebook output for triage.
+        Config: run_id (defaults to {{signal.run_id}})."""
+        return Action("databricks", "databricks-get-run-output")
+
+    @staticmethod
+    def databricks_cancel_run() -> Action:
+        """Cancel an active Databricks job run. Config: run_id."""
+        return Action("databricks", "databricks-cancel-run")
+
+    @staticmethod
+    def databricks_repair_run() -> Action:
+        """Re-run the failed tasks of a terminated run, reusing successful
+        task results. Config: run_id (defaults to {{signal.run_id}})."""
+        return Action("databricks", "databricks-repair-run")
+
+    @staticmethod
+    def databricks_list_clusters() -> Action:
+        """List the workspace's clusters with state and size."""
+        return Action("databricks", "databricks-list-clusters")
+
+    @staticmethod
+    def databricks_get_cluster() -> Action:
+        """Fetch a cluster's state and last termination reason. Config:
+        cluster_id (defaults to {{signal.cluster_id}})."""
+        return Action("databricks", "databricks-get-cluster")
+
+    @staticmethod
+    def databricks_start_cluster() -> Action:
+        """Start a terminated cluster. Config: cluster_id."""
+        return Action("databricks", "databricks-start-cluster")
+
+    @staticmethod
+    def databricks_restart_cluster() -> Action:
+        """Restart a running cluster. Config: cluster_id."""
+        return Action("databricks", "databricks-restart-cluster")
+
+    @staticmethod
+    def databricks_terminate_cluster() -> Action:
+        """Terminate a cluster to stop compute spend (restartable later).
+        Config: cluster_id. Gate behind an approval node."""
+        return Action("databricks", "databricks-terminate-cluster")
+
+    @staticmethod
+    def databricks_list_pipelines() -> Action:
+        """List Delta Live Tables pipelines with their latest update state."""
+        return Action("databricks", "databricks-list-pipelines")
+
+    @staticmethod
+    def databricks_start_pipeline_update() -> Action:
+        """Start a new DLT pipeline update. Config: pipeline_id (defaults to
+        {{signal.pipeline_id}}), full_refresh."""
+        return Action("databricks", "databricks-start-pipeline-update")
+
+    @staticmethod
+    def databricks_stop_pipeline() -> Action:
+        """Stop a DLT pipeline's in-progress update. Config: pipeline_id."""
+        return Action("databricks", "databricks-stop-pipeline")
+
+    @staticmethod
+    def databricks_execute_sql() -> Action:
+        """Run a SQL statement on a SQL warehouse (data-quality checks).
+        Config: warehouse_id, statement."""
+        return Action("databricks", "databricks-execute-sql")
+
+    @staticmethod
+    def databricks_list_warehouses() -> Action:
+        """List the workspace's SQL warehouses with state and size."""
+        return Action("databricks", "databricks-list-warehouses")
+
+    @staticmethod
+    def databricks_start_warehouse() -> Action:
+        """Start a stopped SQL warehouse. Config: warehouse_id."""
+        return Action("databricks", "databricks-start-warehouse")
+
+    @staticmethod
+    def databricks_stop_warehouse() -> Action:
+        """Stop a running SQL warehouse to cut compute spend. Config:
+        warehouse_id."""
+        return Action("databricks", "databricks-stop-warehouse")
+
+    @staticmethod
+    def databricks_investigate() -> Action:
+        """AI investigation of Databricks jobs, runs, clusters, pipelines,
+        and warehouses (read-only). Config: query, max_iterations."""
+        return Action("databricks", "databricks-investigate")
 
     # ======================================================================
     # Internal serialisation

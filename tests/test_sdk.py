@@ -1776,6 +1776,74 @@ class TestBuilderDSL:
         assert tc["source"] == "request"
         assert tc["signals"][0]["filters"]["request_categories"] == ["okta"]
 
+    def test_databricks_triggers(self):
+        t = (
+            Trigger.databricks_job_run_failed("42")
+            .databricks_poll_interval("1m")
+        )
+        _, tc = Workflow("d").trigger(t).build()
+        assert tc["source"] == "databricks"
+        f = tc["signals"][0]["filters"]
+        assert f["databricks_event_types"] == ["job_run.failed"]
+        assert f["databricks_job_ids"] == ["42"]
+        assert f["databricks_poll_interval"] == "1m"
+
+        for factory, events in [
+            (Trigger.databricks_job_run_failed, ["job_run.failed"]),
+            (Trigger.databricks_job_run_succeeded, ["job_run.succeeded"]),
+            (Trigger.databricks_cluster_terminated, ["cluster.terminated_unexpectedly"]),
+            (Trigger.databricks_pipeline_update_failed, ["pipeline.update_failed"]),
+        ]:
+            trig = factory()
+            assert trig._filters["databricks_event_types"] == events
+
+        long_running = Trigger.databricks_job_run_long_running(90)
+        assert long_running._filters["databricks_event_types"] == ["job_run.long_running"]
+        assert long_running._filters["databricks_min_duration_minutes"] == 90
+
+        scoped = Trigger.databricks_pipeline_update_failed("p-1", "p-2")
+        assert scoped._filters["databricks_pipeline_ids"] == ["p-1", "p-2"]
+
+        _, tc = Workflow("any").trigger(Trigger.databricks_any()).build()
+        assert tc["source"] == "databricks"
+
+        _, tc = Workflow("req").trigger(Trigger.request_databricks()).build()
+        assert tc["source"] == "request"
+        assert tc["signals"][0]["filters"]["request_categories"] == ["databricks"]
+
+    def test_databricks_actions_serialize(self):
+        """Databricks factories emit the right integration, action IDs, and
+        config keys."""
+        repair = Action.databricks_repair_run().databricks_run("{{signal.run_id}}")
+        assert repair._integration == "databricks"
+        assert repair._action == "databricks-repair-run"
+        assert repair._config["run_id"] == "{{signal.run_id}}"
+
+        run = Action.databricks_run_job().databricks_job("42")
+        assert run._action == "databricks-run-job"
+        assert run._config["job_id"] == "42"
+
+        sql = (
+            Action.databricks_execute_sql()
+            .databricks_warehouse("wh-1")
+            .databricks_statement("SELECT count(*) FROM t")
+        )
+        assert sql._action == "databricks-execute-sql"
+        assert sql._config["warehouse_id"] == "wh-1"
+        assert sql._config["statement"] == "SELECT count(*) FROM t"
+
+        restart = Action.databricks_restart_cluster().databricks_cluster("{{signal.cluster_id}}")
+        assert restart._action == "databricks-restart-cluster"
+        assert restart._config["cluster_id"] == "{{signal.cluster_id}}"
+
+        update = Action.databricks_start_pipeline_update().databricks_pipeline("p-1")
+        assert update._action == "databricks-start-pipeline-update"
+        assert update._config["pipeline_id"] == "p-1"
+
+        investigate = Action.databricks_investigate().config("query", "why did the run fail?")
+        assert investigate._action == "databricks-investigate"
+        assert investigate._config["query"] == "why did the run fail?"
+
     def test_condition_branching(self):
         wf = (
             Workflow("cond")

@@ -472,6 +472,40 @@ class Trigger:
         self._filters["okta_poll_interval"] = interval
         return self
 
+    # -- Databricks filters ---------------------------------------------------
+
+    def databricks_events(self, *types: str) -> Trigger:
+        """Restrict to synthesized Databricks event types (e.g.
+        "job_run.failed", "cluster.terminated_unexpectedly"; ["*"] for all
+        the trigger detects)."""
+        self._filters["databricks_event_types"] = list(types)
+        return self
+
+    def databricks_jobs(self, *job_ids: str) -> Trigger:
+        """Scope job-run events to specific Databricks job IDs (["*"] for all)."""
+        self._filters["databricks_job_ids"] = list(job_ids)
+        return self
+
+    def databricks_clusters(self, *cluster_ids: str) -> Trigger:
+        """Scope cluster events to specific cluster IDs (["*"] for all)."""
+        self._filters["databricks_cluster_ids"] = list(cluster_ids)
+        return self
+
+    def databricks_pipelines(self, *pipeline_ids: str) -> Trigger:
+        """Scope DLT pipeline events to specific pipeline IDs (["*"] for all)."""
+        self._filters["databricks_pipeline_ids"] = list(pipeline_ids)
+        return self
+
+    def databricks_min_duration_minutes(self, minutes: int) -> Trigger:
+        """Duration threshold for job_run.long_running triggers (default 60)."""
+        self._filters["databricks_min_duration_minutes"] = minutes
+        return self
+
+    def databricks_poll_interval(self, interval: str) -> Trigger:
+        """How often Kestrel polls the Databricks API ("1m", "5m", "15m", "30m")."""
+        self._filters["databricks_poll_interval"] = interval
+        return self
+
     # -- Kyverno filters -----------------------------------------------------
     # Cluster/namespace scoping uses the generic .cluster() / .namespace()
     # helpers since Kyverno signals ride the Kubernetes event pipeline.
@@ -1400,6 +1434,60 @@ class Trigger:
         return Trigger("okta", "any")
 
     # ======================================================================
+    # Factory methods — Databricks (poll-based; no webhooks needed)
+    # ======================================================================
+
+    @staticmethod
+    def databricks_job_run_failed(*job_ids: str) -> Trigger:
+        """A Databricks job run terminated FAILED/TIMEDOUT/CANCELED. Optionally
+        scope to specific job IDs."""
+        t = Trigger("databricks", "job_run.failed").databricks_events("job_run.failed")
+        if job_ids:
+            t = t.databricks_jobs(*job_ids)
+        return t
+
+    @staticmethod
+    def databricks_job_run_succeeded(*job_ids: str) -> Trigger:
+        """A Databricks job run completed successfully. Optionally scope to
+        specific job IDs."""
+        t = Trigger("databricks", "job_run.succeeded").databricks_events("job_run.succeeded")
+        if job_ids:
+            t = t.databricks_jobs(*job_ids)
+        return t
+
+    @staticmethod
+    def databricks_job_run_long_running(min_duration_minutes: int = 60) -> Trigger:
+        """A still-running Databricks job run exceeded a duration threshold
+        (catch stuck or runaway jobs before they burn compute)."""
+        return (
+            Trigger("databricks", "job_run.long_running")
+            .databricks_events("job_run.long_running")
+            .databricks_min_duration_minutes(min_duration_minutes)
+        )
+
+    @staticmethod
+    def databricks_cluster_terminated() -> Trigger:
+        """A Databricks cluster terminated with an error (Spark failure, cloud
+        provider failure, driver unresponsive). Expected user/auto-stop
+        terminations don't fire."""
+        return Trigger("databricks", "cluster.terminated_unexpectedly").databricks_events(
+            "cluster.terminated_unexpectedly"
+        )
+
+    @staticmethod
+    def databricks_pipeline_update_failed(*pipeline_ids: str) -> Trigger:
+        """A Delta Live Tables pipeline update failed. Optionally scope to
+        specific pipeline IDs."""
+        t = Trigger("databricks", "pipeline.update_failed").databricks_events("pipeline.update_failed")
+        if pipeline_ids:
+            t = t.databricks_pipelines(*pipeline_ids)
+        return t
+
+    @staticmethod
+    def databricks_any() -> Trigger:
+        return Trigger("databricks", "any")
+
+    # ======================================================================
     # Factory methods — Request (Slack /kestrel-workflow)
     # ======================================================================
 
@@ -1494,6 +1582,10 @@ class Trigger:
     @staticmethod
     def request_okta() -> Trigger:
         return Trigger("request", "any").filter(request_categories=["okta"])
+
+    @staticmethod
+    def request_databricks() -> Trigger:
+        return Trigger("request", "any").filter(request_categories=["databricks"])
 
     @staticmethod
     def request_general() -> Trigger:
