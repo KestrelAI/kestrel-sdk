@@ -376,7 +376,9 @@ REGISTRY: tuple[IntegrationSpec, ...] = (
            IntegrationField("api_token", "Databricks personal access token", required=True, secret=True),
            setup_help=(
                "Personal access token: your workspace -> Settings -> Developer -> Access tokens -> "
-               "Generate new token (a service-principal token is recommended for production). "
+               "Generate new token. Under Scope choose 'Other APIs' and select the jobs, clusters, "
+               "pipelines, sql, and query-history API scopes (avoid 'all APIs'). A service-principal "
+               "token is recommended for production. "
                "Workspace URL: the workspace base URL from the browser address bar, e.g. "
                "https://dbc-a1b2c3d4-e5f6.cloud.databricks.com (Azure: https://adb-xxxx.azuredatabricks.net). "
                "No webhooks needed — Kestrel polls the Databricks REST API for job-run, cluster, and "
