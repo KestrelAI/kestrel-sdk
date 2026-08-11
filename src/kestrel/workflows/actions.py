@@ -1383,6 +1383,293 @@ class Action:
         return Action("aws-cost", "aws-delete-old-snapshots")
 
     # ======================================================================
+    # Factory methods — Google Cloud (GCP) Cost
+    #
+    # Blocks that read cost data depend on a customer-enabled BigQuery billing
+    # export. When it is absent they return status "cost_data_pending" rather
+    # than failing, so a workflow can branch on it instead of erroring.
+    # ======================================================================
+
+    @staticmethod
+    def gcp_query_billing() -> Action:
+        """Query the BigQuery billing export, grouped by service, SKU, region, project, or label."""
+        return Action("gcp-cost", "gcp-query-billing")
+
+    @staticmethod
+    def gcp_get_cost_anomalies() -> Action:
+        """Detect services whose recent spend deviates from their trailing baseline."""
+        return Action("gcp-cost", "gcp-get-cost-anomalies")
+
+    @staticmethod
+    def gcp_get_cost_forecast() -> Action:
+        """Project month-end GCP spend from month-to-date actuals."""
+        return Action("gcp-cost", "gcp-get-cost-forecast")
+
+    @staticmethod
+    def gcp_get_budget_status() -> Action:
+        """Cloud Billing budgets with amount, consumed percentage, and forecast."""
+        return Action("gcp-cost", "gcp-get-budget-status")
+
+    @staticmethod
+    def gcp_get_rightsizing_recommendations() -> Action:
+        """Google Cloud Recommender machine-type and idle-resource recommendations."""
+        return Action("gcp-cost", "gcp-get-rightsizing-recommendations")
+
+    @staticmethod
+    def gcp_get_cud_recommendations() -> Action:
+        """Committed-use discount purchase recommendations (the GCP equivalent of Savings Plans)."""
+        return Action("gcp-cost", "gcp-get-cud-recommendations")
+
+    @staticmethod
+    def gcp_get_cud_utilization() -> Action:
+        """How fully existing committed-use discounts are being used."""
+        return Action("gcp-cost", "gcp-get-cud-utilization")
+
+    @staticmethod
+    def gcp_compare_cost_periods() -> Action:
+        """Compare two consecutive periods and report the largest movers."""
+        return Action("gcp-cost", "gcp-compare-cost-periods")
+
+    @staticmethod
+    def gcp_find_idle_resources() -> Action:
+        """Scan for unattached disks, unused static IPs, low-CPU instances, and old snapshots."""
+        return Action("gcp-cost", "gcp-find-idle-resources")
+
+    # -- GCP Cost remediation (destructive — place behind an Approval block) --
+    # Resources labelled kestrel-protected are always skipped, and every block
+    # has a safety cap that fails the step on an unexpectedly large selection.
+
+    @staticmethod
+    def gcp_stop_instances() -> Action:
+        """Stop running Compute Engine instances."""
+        return Action("gcp-cost", "gcp-stop-instances")
+
+    @staticmethod
+    def gcp_delete_unattached_disks() -> Action:
+        """Delete persistent disks with no attached instance, optionally snapshotting first."""
+        return Action("gcp-cost", "gcp-delete-unattached-disks")
+
+    @staticmethod
+    def gcp_release_static_ips() -> Action:
+        """Release reserved static IP addresses that are not in use."""
+        return Action("gcp-cost", "gcp-release-static-ips")
+
+    @staticmethod
+    def gcp_delete_old_snapshots() -> Action:
+        """Delete persistent-disk snapshots older than a threshold."""
+        return Action("gcp-cost", "gcp-delete-old-snapshots")
+
+    @staticmethod
+    def gcp_downsize_instance() -> Action:
+        """Change an instance's machine type. Requires a stopped instance unless auto_stop_start is set."""
+        return Action("gcp-cost", "gcp-downsize-instance")
+
+    # ======================================================================
+    # Factory methods — Google Cloud compute and operations (Phase 2)
+    #
+    # These belong to the "gcp" integration, distinct from "gcp-cost". Blocks that
+    # change infrastructure should sit behind an Approval node.
+    # ======================================================================
+
+    @staticmethod
+    def gcp_get_instance() -> Action:
+        """Compute Engine instance status, machine type, and why it stopped."""
+        return Action("gcp", "gcp-get-instance")
+
+    @staticmethod
+    def gcp_get_instance_group() -> Action:
+        """Managed instance group target size, running size, and unhealthy count."""
+        return Action("gcp", "gcp-get-instance-group")
+
+    @staticmethod
+    def gcp_start_instance() -> Action:
+        """Start a stopped instance — the usual recovery after a preemption."""
+        return Action("gcp", "gcp-start-instance")
+
+    @staticmethod
+    def gcp_reset_instance() -> Action:
+        """Hard power-cycle an instance. No graceful shutdown; prefer stop/start for data integrity."""
+        return Action("gcp", "gcp-reset-instance")
+
+    @staticmethod
+    def gcp_resize_instance_group() -> Action:
+        """Set a managed instance group's target size."""
+        return Action("gcp", "gcp-resize-instance-group")
+
+    @staticmethod
+    def gcp_recreate_instance_group_members() -> Action:
+        """Recreate instance group members to clear stuck instances or roll an image."""
+        return Action("gcp", "gcp-recreate-instance-group-members")
+
+    @staticmethod
+    def gcp_list_node_pools() -> Action:
+        """Every GKE node pool with status, size, and autoscaling bounds."""
+        return Action("gcp", "gcp-list-node-pools")
+
+    @staticmethod
+    def gcp_resize_node_pool() -> Action:
+        """Set a GKE node pool's node count. Rejected when autoscaling would revert it."""
+        return Action("gcp", "gcp-resize-node-pool")
+
+    @staticmethod
+    def gcp_set_node_pool_autoscaling() -> Action:
+        """Set a GKE node pool's autoscaling bounds — the right way to add headroom."""
+        return Action("gcp", "gcp-set-node-pool-autoscaling")
+
+    @staticmethod
+    def gcp_get_cloudrun_service() -> Action:
+        """Cloud Run readiness plus latest and latest-ready revisions (the rollback target)."""
+        return Action("gcp", "gcp-get-cloudrun-service")
+
+    @staticmethod
+    def gcp_rollback_cloudrun() -> Action:
+        """Send all Cloud Run traffic to a good revision. Blank revision uses latest_ready_revision."""
+        return Action("gcp", "gcp-rollback-cloudrun")
+
+    @staticmethod
+    def gcp_set_cloudrun_traffic() -> Action:
+        """Split Cloud Run traffic across revisions for a canary. Percentages must sum to 100."""
+        return Action("gcp", "gcp-set-cloudrun-traffic")
+
+    @staticmethod
+    def gcp_query_metrics() -> Action:
+        """Aligned Cloud Monitoring query returning latest and average values."""
+        return Action("gcp", "gcp-query-metrics")
+
+    @staticmethod
+    def gcp_query_logs() -> Action:
+        """Cloud Logging entries matching a filter, for triage."""
+        return Action("gcp", "gcp-query-logs")
+
+    @staticmethod
+    def gcp_retry_build() -> Action:
+        """Re-run a failed Cloud Build."""
+        return Action("gcp", "gcp-retry-build")
+
+    @staticmethod
+    def gcp_investigate() -> Action:
+        """AI multi-turn read-only investigation across GCP compute, GKE, Cloud Run, metrics, logs, and builds."""
+        return Action("gcp", "gcp-investigate")
+
+    # ======================================================================
+    # Factory methods — Google Cloud security (Phase 3)
+    #
+    # Integration "gcp-security". Every mutating block reduces access; gate them
+    # behind an Approval node.
+    # ======================================================================
+
+    @staticmethod
+    def gcp_list_scc_findings() -> Action:
+        """Active Security Command Center findings. Reports org_access_required when the connection lacks org-level SCC access."""
+        return Action("gcp-security", "gcp-list-scc-findings")
+
+    @staticmethod
+    def gcp_audit_iam_policy() -> Action:
+        """Project IAM bindings, flagging privileged roles and public principals."""
+        return Action("gcp-security", "gcp-audit-iam-policy")
+
+    @staticmethod
+    def gcp_audit_service_account_keys() -> Action:
+        """User-managed service-account keys with their age."""
+        return Action("gcp-security", "gcp-audit-service-account-keys")
+
+    @staticmethod
+    def gcp_find_public_buckets() -> Action:
+        """Cloud Storage buckets granting allUsers or allAuthenticatedUsers."""
+        return Action("gcp-security", "gcp-find-public-buckets")
+
+    @staticmethod
+    def gcp_delete_service_account_key() -> Action:
+        """Delete a user-managed service-account key. Anything still using it breaks immediately."""
+        return Action("gcp-security", "gcp-delete-service-account-key")
+
+    @staticmethod
+    def gcp_disable_service_account() -> Action:
+        """Disable a service account, revoking every credential it holds."""
+        return Action("gcp-security", "gcp-disable-service-account")
+
+    @staticmethod
+    def gcp_remove_iam_binding() -> Action:
+        """Revoke one member from one role on the project IAM policy."""
+        return Action("gcp-security", "gcp-remove-iam-binding")
+
+    @staticmethod
+    def gcp_remove_public_bucket_access() -> Action:
+        """Strip public principals from a bucket's IAM policy."""
+        return Action("gcp-security", "gcp-remove-public-bucket-access")
+
+    @staticmethod
+    def gcp_quarantine_instance() -> Action:
+        """Tag an instance so a pre-existing deny-all firewall rule isolates it, preserving it for forensics."""
+        return Action("gcp-security", "gcp-quarantine-instance")
+
+    # ======================================================================
+    # Factory methods — Google Cloud data platform (Phase 3)
+    #
+    # Integration "gcp-data".
+    # ======================================================================
+
+    @staticmethod
+    def gcp_run_bigquery_query() -> Action:
+        """Run a read-only BigQuery query with a bytes-billed ceiling. Only a single SELECT/WITH is permitted."""
+        return Action("gcp-data", "gcp-run-bigquery-query")
+
+    @staticmethod
+    def gcp_list_bigquery_jobs() -> Action:
+        """Recent BigQuery jobs with state, error, and bytes billed."""
+        return Action("gcp-data", "gcp-list-bigquery-jobs")
+
+    @staticmethod
+    def gcp_cancel_bigquery_job() -> Action:
+        """Cancel a running BigQuery job."""
+        return Action("gcp-data", "gcp-cancel-bigquery-job")
+
+    @staticmethod
+    def gcp_list_sql_instances() -> Action:
+        """Cloud SQL instances with state and availability type."""
+        return Action("gcp-data", "gcp-list-sql-instances")
+
+    @staticmethod
+    def gcp_get_sql_instance() -> Action:
+        """One Cloud SQL instance's state and whether it has a standby."""
+        return Action("gcp-data", "gcp-get-sql-instance")
+
+    @staticmethod
+    def gcp_restart_sql_instance() -> Action:
+        """Restart a Cloud SQL instance; connections drop."""
+        return Action("gcp-data", "gcp-restart-sql-instance")
+
+    @staticmethod
+    def gcp_failover_sql_instance() -> Action:
+        """Promote a Cloud SQL standby. Rejected on a zonal instance."""
+        return Action("gcp-data", "gcp-failover-sql-instance")
+
+    @staticmethod
+    def gcp_list_subscriptions() -> Action:
+        """Pub/Sub subscriptions with topic and backlog depth."""
+        return Action("gcp-data", "gcp-list-subscriptions")
+
+    @staticmethod
+    def gcp_purge_subscription() -> Action:
+        """Discard every outstanding message on a subscription. Unrecoverable; prefer replay."""
+        return Action("gcp-data", "gcp-purge-subscription")
+
+    @staticmethod
+    def gcp_replay_subscription() -> Action:
+        """Rewind a subscription to redeliver retained messages. Capped at Pub/Sub's 7-day retention."""
+        return Action("gcp-data", "gcp-replay-subscription")
+
+    @staticmethod
+    def gcp_list_dataflow_jobs() -> Action:
+        """Dataflow jobs across every region with their state."""
+        return Action("gcp-data", "gcp-list-dataflow-jobs")
+
+    @staticmethod
+    def gcp_stop_dataflow_job() -> Action:
+        """Drain or cancel a Dataflow job. Drain lets in-flight work finish."""
+        return Action("gcp-data", "gcp-stop-dataflow-job")
+
+    # ======================================================================
     # Factory methods — PostHog
     # ======================================================================
 

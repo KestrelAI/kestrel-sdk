@@ -100,6 +100,9 @@ REGISTRY: tuple[IntegrationSpec, ...] = (
     IntegrationSpec(key="oci", name="Oracle Cloud (OCI)", kind="cloud",
                     description="Connect an OCI tenancy with API-key auth (use the kestrel CLI)",
                     setup_help="Use the Kestrel CLI: `kestrel integrations connect oci`. API key: OCI Console -> Profile -> My profile -> API keys -> Add API key. Download the private key (PEM) and note the fingerprint, tenancy OCID, and user OCID."),
+    IntegrationSpec(key="gcp", name="Google Cloud (GCP)", kind="cloud",
+                    description="Connect a GCP project with keyless Workload Identity Federation (use the kestrel CLI)",
+                    setup_help="Use the Kestrel CLI: `kestrel integrations connect gcp --bootstrap --project-id <project>` prints a Cloud Shell setup script; run it, then re-run with --project-id to verify. No service-account keys are created. Cost blocks also need a BigQuery billing export (Cloud console -> Billing -> Billing export -> Detailed usage cost), passed with --billing-export-table; Google can take up to 24h to populate it."),
     # Token integrations
     _token("cloudflare", "Cloudflare", "Zones, Workers, DNS, WAF, and tunnels",
            IntegrationField("api_token", "Cloudflare API token", required=True, secret=True),

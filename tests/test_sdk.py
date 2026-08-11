@@ -1844,6 +1844,239 @@ class TestBuilderDSL:
         assert investigate._action == "databricks-investigate"
         assert investigate._config["query"] == "why did the run fail?"
 
+    def test_gcp_triggers(self):
+        """Every GCP trigger factory sets source "gcp" and pins exactly the
+        event type it names."""
+        t = (
+            Trigger.gcp_cost_anomaly()
+            .gcp_projects("my-project")
+            .gcp_min_cost_impact(250)
+            .gcp_poll_interval("6h")
+        )
+        _, tc = Workflow("g").trigger(t).build()
+        assert tc["source"] == "gcp"
+        assert tc["signals"][0]["signal_type"] == "cost_anomaly"
+        f = tc["signals"][0]["filters"]
+        assert f["gcp_connection_ids"] == ["my-project"]
+        assert f["gcp_min_cost_impact"] == 250
+        assert f["gcp_poll_interval"] == "6h"
+
+        # Each factory pins its own event type, so a copy-paste slip between
+        # the 23 factories is caught here rather than at runtime.
+        for factory, events in [
+            (Trigger.gcp_cost_anomaly, ["cost_anomaly"]),
+            (Trigger.gcp_budget_alert, ["budget_alert"]),
+            (Trigger.gcp_forecast_overrun, ["forecast_overrun"]),
+            (Trigger.gcp_spend_spike, ["spend_spike"]),
+            (Trigger.gcp_idle_resource, ["idle_resource"]),
+            (Trigger.gcp_instance_preempted, ["instance.preempted"]),
+            (
+                Trigger.gcp_instance_terminated_abnormally,
+                ["instance.terminated_abnormally"],
+            ),
+            (Trigger.gcp_mig_unhealthy, ["mig.unhealthy"]),
+            (Trigger.gcp_nodepool_degraded, ["nodepool.degraded"]),
+            (Trigger.gcp_cloudrun_revision_failed, ["cloudrun.revision_failed"]),
+            (Trigger.gcp_monitoring_alert_fired, ["monitoring.alert_fired"]),
+            (Trigger.gcp_logging_error_pattern, ["logging.error_pattern"]),
+            (Trigger.gcp_build_failed, ["build.failed"]),
+            (Trigger.gcp_scc_finding, ["scc.finding"]),
+            (Trigger.gcp_iam_policy_change, ["iam.policy_change"]),
+            (Trigger.gcp_service_account_key_stale, ["sa_key.stale"]),
+            (Trigger.gcp_public_bucket, ["storage.public_access"]),
+            (Trigger.gcp_public_iam_binding, ["iam.public_binding"]),
+            (Trigger.gcp_bigquery_job_failed, ["bigquery.job_failed"]),
+            (Trigger.gcp_bigquery_expensive_query, ["bigquery.expensive_query"]),
+            (Trigger.gcp_cloudsql_unhealthy, ["cloudsql.unhealthy"]),
+            (Trigger.gcp_pubsub_backlog, ["pubsub.backlog"]),
+            (Trigger.gcp_dataflow_job_failed, ["dataflow.job_failed"]),
+        ]:
+            trig = factory()
+            assert trig._signal_type == events[0], factory.__name__
+
+        # gcp_any() matches every GCP event rather than pinning one.
+        _, tc = Workflow("any").trigger(Trigger.gcp_any()).build()
+        assert tc["source"] == "gcp"
+        assert tc["signals"][0]["signal_type"] == "any"
+
+    def test_gcp_trigger_scoping_filters(self):
+        """Scoping helpers write the filter keys the server's SignalFilter
+        expects. A rename on either side would break matching silently."""
+        t = (
+            Trigger.gcp_mig_unhealthy()
+            .gcp_projects("proj-a", "proj-b")
+            .gcp_regions("us-central1")
+            .gcp_zones("us-central1-a")
+            .gcp_instance_groups("mig-1")
+            .gcp_unhealthy_threshold(3)
+        )
+        f = t._filters
+        assert f["gcp_connection_ids"] == ["proj-a", "proj-b"]
+        assert f["gcp_regions"] == ["us-central1"]
+        assert f["gcp_zones"] == ["us-central1-a"]
+        assert f["gcp_instance_groups"] == ["mig-1"]
+        assert f["gcp_unhealthy_threshold"] == 3
+
+        ops = (
+            Trigger.gcp_nodepool_degraded()
+            .gcp_clusters("prod")
+            .gcp_node_pools("default-pool")
+            .gcp_min_duration_minutes(15)
+        )
+        assert ops._filters["gcp_clusters"] == ["prod"]
+        assert ops._filters["gcp_node_pools"] == ["default-pool"]
+        assert ops._filters["gcp_min_duration_minutes"] == 15
+
+        # gcp_services filters the billing/monitoring service name, while
+        # gcp_cloudrun_services scopes Cloud Run events to service names. These
+        # are different filter keys and must not collide.
+        billing = Trigger.gcp_cost_anomaly().gcp_services("Compute Engine")
+        assert billing._filters["gcp_service_names"] == ["Compute Engine"]
+        run = Trigger.gcp_cloudrun_revision_failed().gcp_cloudrun_services("checkout")
+        assert run._filters["gcp_services"] == ["checkout"]
+
+        logs = (
+            Trigger.gcp_logging_error_pattern()
+            .gcp_log_filter('resource.type="cloud_run_revision"')
+            .gcp_log_severity("ERROR")
+            .gcp_min_error_count(20)
+        )
+        assert logs._filters["gcp_log_filter"] == 'resource.type="cloud_run_revision"'
+        assert logs._filters["gcp_log_severity"] == "ERROR"
+        assert logs._filters["gcp_min_error_count"] == 20
+
+        sec = (
+            Trigger.gcp_scc_finding()
+            .gcp_finding_categories("PUBLIC_BUCKET_ACL")
+            .gcp_severities("critical", "high")
+        )
+        assert sec._filters["gcp_finding_categories"] == ["PUBLIC_BUCKET_ACL"]
+        assert sec._filters["gcp_severities"] == ["critical", "high"]
+
+        keys = (
+            Trigger.gcp_service_account_key_stale()
+            .gcp_service_accounts("sa@proj.iam.gserviceaccount.com")
+            .gcp_max_key_age_days(30)
+        )
+        assert keys._filters["gcp_service_accounts"] == [
+            "sa@proj.iam.gserviceaccount.com"
+        ]
+        assert keys._filters["gcp_max_key_age_days"] == 30
+
+        data = Trigger.gcp_pubsub_backlog().gcp_subscriptions("orders-sub")
+        assert data._filters["gcp_subscriptions"] == ["orders-sub"]
+
+        idle = (
+            Trigger.gcp_idle_resource()
+            .gcp_idle_resource_types("disk", "address")
+            .gcp_min_monthly_savings(50)
+        )
+        assert idle._filters["gcp_idle_resource_types"] == ["disk", "address"]
+        assert idle._filters["gcp_min_monthly_savings"] == 50
+
+        budget = Trigger.gcp_budget_alert().gcp_budget_threshold_percent(90)
+        assert budget._filters["gcp_budget_threshold_percent"] == 90
+        spike = Trigger.gcp_spend_spike().gcp_spike_percent(60)
+        assert spike._filters["gcp_spike_percent"] == 60
+
+    def test_gcp_actions_serialize(self):
+        """GCP factories emit the right integration, action IDs, and config
+        keys, including template variables passed through from a trigger."""
+        # The four GCP integrations are distinct, so a block registered under
+        # one must not report another.
+        query = (
+            Action.gcp_query_billing()
+            .config("gcp_project", "my-project")
+            .config("days", 30)
+        )
+        assert query._integration == "gcp-cost"
+        assert query._action == "gcp-query-billing"
+        assert query._config["gcp_project"] == "my-project"
+
+        stop = (
+            Action.gcp_stop_instances()
+            .config("gcp_project", "my-project")
+            .config("zone", "us-central1-a")
+            .config("instance_names", "{{step_outputs.action-1.instance_names}}")
+        )
+        assert stop._integration == "gcp-cost"
+        assert stop._action == "gcp-stop-instances"
+        assert stop._config["zone"] == "us-central1-a"
+        # Template variables must survive untouched so the engine can resolve
+        # them at execution time.
+        assert (
+            stop._config["instance_names"]
+            == "{{step_outputs.action-1.instance_names}}"
+        )
+
+        rollback = (
+            Action.gcp_rollback_cloudrun()
+            .config("gcp_project", "my-project")
+            .config("region", "us-central1")
+            .config("service_name", "{{signal.cloudrun_service}}")
+        )
+        assert rollback._integration == "gcp"
+        assert rollback._action == "gcp-rollback-cloudrun"
+        assert rollback._config["service_name"] == "{{signal.cloudrun_service}}"
+
+        binding = (
+            Action.gcp_remove_iam_binding()
+            .config("gcp_project", "my-project")
+            .config("member", "user:contractor@example.com")
+            .config("role", "roles/owner")
+        )
+        assert binding._integration == "gcp-security"
+        assert binding._action == "gcp-remove-iam-binding"
+        assert binding._config["role"] == "roles/owner"
+
+        bq = (
+            Action.gcp_run_bigquery_query()
+            .config("gcp_project", "my-project")
+            .config("query", "SELECT 1")
+        )
+        assert bq._integration == "gcp-data"
+        assert bq._action == "gcp-run-bigquery-query"
+        assert bq._config["query"] == "SELECT 1"
+
+    def test_gcp_workflow_round_trip(self):
+        """A GCP trigger feeding a GCP action serializes into the shape the
+        server expects, with the trigger's outputs referenced by the action."""
+        wf = (
+            Workflow("cloud-run-rollback")
+            .trigger(
+                Trigger.gcp_cloudrun_revision_failed()
+                .gcp_projects("my-project")
+                .gcp_cloudrun_services("checkout")
+            )
+            .then(
+                Action.gcp_get_cloudrun_service()
+                .config("gcp_project", "my-project")
+                .config("region", "us-central1")
+                .config("service_name", "{{signal.cloudrun_service}}")
+            )
+        )
+        dag, tc = wf.build()
+        assert tc["source"] == "gcp"
+        assert tc["signals"][0]["filters"]["gcp_services"] == ["checkout"]
+
+        # Node 0 is the trigger, node 1 the action it feeds.
+        trigger_node, step = dag["nodes"][0], dag["nodes"][1]
+        assert trigger_node["type"] == "trigger"
+        assert trigger_node["data"]["source"] == "gcp"
+        assert trigger_node["data"]["signal_type"] == "cloudrun.revision_failed"
+
+        assert step["type"] == "action"
+        assert step["data"]["integration"] == "gcp"
+        assert step["data"]["action"] == "gcp-get-cloudrun-service"
+        assert (
+            step["data"]["config"]["service_name"] == "{{signal.cloudrun_service}}"
+        )
+        # The trigger must actually be wired to the action.
+        assert any(
+            e["source"] == trigger_node["id"] and e["target"] == step["id"]
+            for e in dag["edges"]
+        )
+
     def test_condition_branching(self):
         wf = (
             Workflow("cond")

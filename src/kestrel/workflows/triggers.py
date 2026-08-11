@@ -506,6 +506,214 @@ class Trigger:
         self._filters["databricks_poll_interval"] = interval
         return self
 
+    # -- Google Cloud (GCP) filters -------------------------------------------
+
+    def gcp_projects(self, *project_ids: str) -> Trigger:
+        """Scope to specific connected GCP projects (["*"] for all).
+
+        Accepts either the GCP project ID or Kestrel's internal connection ID.
+        """
+        self._filters["gcp_connection_ids"] = list(project_ids)
+        return self
+
+    def gcp_events(self, *types: str) -> Trigger:
+        """Restrict to synthesized GCP event types ("cost_anomaly",
+        "budget_alert", "forecast_overrun", "spend_spike", "idle_resource";
+        ["*"] for all the trigger detects)."""
+        self._filters["gcp_event_types"] = list(types)
+        return self
+
+    def gcp_services(self, *services: str) -> Trigger:
+        """Scope to specific GCP services (e.g. "Compute Engine", "BigQuery")."""
+        self._filters["gcp_service_names"] = list(services)
+        return self
+
+    def gcp_regions(self, *regions: str) -> Trigger:
+        """Scope to specific GCP regions. Signals that are not region-scoped
+        report "global"."""
+        self._filters["gcp_regions"] = list(regions)
+        return self
+
+    def gcp_severities(self, *severities: str) -> Trigger:
+        """Scope to specific severities ("critical", "high", "medium", "low")."""
+        self._filters["gcp_severities"] = list(severities)
+        return self
+
+    def gcp_min_cost_impact(self, amount: float) -> Trigger:
+        """Minimum dollar impact for a cost_anomaly trigger to fire."""
+        self._filters["gcp_min_cost_impact"] = amount
+        return self
+
+    def gcp_spike_percent(self, percent: float) -> Trigger:
+        """Percent above the trailing 7-day average required for a spend_spike
+        trigger (default 40)."""
+        self._filters["gcp_spike_percent"] = percent
+        return self
+
+    def gcp_budget_threshold_percent(self, percent: float) -> Trigger:
+        """Budget-consumed percentage at which a budget_alert fires (default 100)."""
+        self._filters["gcp_budget_threshold_percent"] = percent
+        return self
+
+    def gcp_min_monthly_savings(self, amount: float) -> Trigger:
+        """Minimum estimated monthly savings for an idle_resource trigger."""
+        self._filters["gcp_min_monthly_savings"] = amount
+        return self
+
+    def gcp_idle_resource_types(self, *types: str) -> Trigger:
+        """Scope idle-resource scans to specific families ("disks",
+        "addresses", "instances", "snapshots")."""
+        self._filters["gcp_idle_resource_types"] = list(types)
+        return self
+
+    def gcp_poll_interval(self, interval: str) -> Trigger:
+        """How often Kestrel polls GCP ("1m", "5m", "15m", "30m", "1h", "6h",
+        "24h").
+
+        Defaults to "5m" for compute/ops events and "6h" for cost events. Cost
+        data comes from a BigQuery billing export that is not real-time and is
+        charged per query, so cost polling is floored at 1h regardless of what is
+        requested here; the short intervals are for the ops triggers.
+        """
+        self._filters["gcp_poll_interval"] = interval
+        return self
+
+    # -- GCP compute/ops filters ----------------------------------------------
+
+    def gcp_zones(self, *zones: str) -> Trigger:
+        """Scope zonal events (instances, instance groups) to specific zones."""
+        self._filters["gcp_zones"] = list(zones)
+        return self
+
+    def gcp_instance_names(self, *names: str) -> Trigger:
+        """Scope instance events to specific VM names (["*"] for all)."""
+        self._filters["gcp_instance_names"] = list(names)
+        return self
+
+    def gcp_instance_groups(self, *names: str) -> Trigger:
+        """Scope mig.unhealthy to specific managed instance groups."""
+        self._filters["gcp_instance_groups"] = list(names)
+        return self
+
+    def gcp_clusters(self, *names: str) -> Trigger:
+        """Scope GKE events to specific cluster names."""
+        self._filters["gcp_clusters"] = list(names)
+        return self
+
+    def gcp_node_pools(self, *names: str) -> Trigger:
+        """Scope GKE node-pool events to specific pool names."""
+        self._filters["gcp_node_pools"] = list(names)
+        return self
+
+    def gcp_cloudrun_services(self, *names: str) -> Trigger:
+        """Scope Cloud Run events to specific service names. Distinct from
+        gcp_services, which filters on the billing/monitoring service name."""
+        self._filters["gcp_services"] = list(names)
+        return self
+
+    def gcp_build_triggers(self, *names: str) -> Trigger:
+        """Scope Cloud Build events to specific trigger names."""
+        self._filters["gcp_build_triggers"] = list(names)
+        return self
+
+    def gcp_alert_policies(self, *names: str) -> Trigger:
+        """Scope Cloud Monitoring events to specific alert policy names."""
+        self._filters["gcp_alert_policies"] = list(names)
+        return self
+
+    def gcp_log_filter(self, expression: str) -> Trigger:
+        """Cloud Logging filter expression for logging.error_pattern.
+
+        Overrides the severity floor. Kestrel always appends a timestamp bound,
+        so an unbounded expression cannot scan the full retention window.
+        """
+        self._filters["gcp_log_filter"] = expression
+        return self
+
+    def gcp_log_severity(self, severity: str) -> Trigger:
+        """Minimum Cloud Logging severity ("ERROR", "CRITICAL", ...). Default "ERROR"."""
+        self._filters["gcp_log_severity"] = severity
+        return self
+
+    def gcp_min_error_count(self, count: int) -> Trigger:
+        """How many matching log entries must appear before the trigger fires."""
+        self._filters["gcp_min_error_count"] = count
+        return self
+
+    def gcp_unhealthy_threshold(self, count: int) -> Trigger:
+        """How many unhealthy instances a group needs before mig.unhealthy fires
+        (default 1)."""
+        self._filters["gcp_unhealthy_threshold"] = count
+        return self
+
+    def gcp_min_duration_minutes(self, minutes: int) -> Trigger:
+        """Dwell time before a duration-bearing ops trigger fires, e.g. how long
+        a GKE node pool must stay degraded. Keeps routine upgrades quiet."""
+        self._filters["gcp_min_duration_minutes"] = minutes
+        return self
+
+    # -- GCP security filters -------------------------------------------------
+
+    def gcp_finding_categories(self, *categories: str) -> Trigger:
+        """Scope Security Command Center events to specific finding categories."""
+        self._filters["gcp_finding_categories"] = list(categories)
+        return self
+
+    def gcp_service_accounts(self, *emails: str) -> Trigger:
+        """Scope IAM and service-account-key events to specific accounts."""
+        self._filters["gcp_service_accounts"] = list(emails)
+        return self
+
+    def gcp_roles(self, *roles: str) -> Trigger:
+        """Scope IAM policy-change events to grants of specific roles."""
+        self._filters["gcp_roles"] = list(roles)
+        return self
+
+    def gcp_buckets(self, *names: str) -> Trigger:
+        """Scope Cloud Storage events to specific bucket names."""
+        self._filters["gcp_buckets"] = list(names)
+        return self
+
+    def gcp_max_key_age_days(self, days: int) -> Trigger:
+        """Age at or beyond which a service-account key is reported stale
+        (default 90)."""
+        self._filters["gcp_max_key_age_days"] = days
+        return self
+
+    # -- GCP data filters -----------------------------------------------------
+
+    def gcp_datasets(self, *ids: str) -> Trigger:
+        """Scope BigQuery events to specific dataset IDs."""
+        self._filters["gcp_datasets"] = list(ids)
+        return self
+
+    def gcp_sql_instances(self, *names: str) -> Trigger:
+        """Scope Cloud SQL events to specific instance names."""
+        self._filters["gcp_sql_instances"] = list(names)
+        return self
+
+    def gcp_subscriptions(self, *ids: str) -> Trigger:
+        """Scope Pub/Sub events to specific subscription IDs."""
+        self._filters["gcp_subscriptions"] = list(ids)
+        return self
+
+    def gcp_dataflow_jobs(self, *names: str) -> Trigger:
+        """Scope Dataflow events to specific job names."""
+        self._filters["gcp_dataflow_jobs"] = list(names)
+        return self
+
+    def gcp_max_bytes_billed_gb(self, gb: float) -> Trigger:
+        """Bytes-billed threshold in GB above which a BigQuery job is reported
+        as expensive (default 100)."""
+        self._filters["gcp_max_bytes_billed_gb"] = gb
+        return self
+
+    def gcp_max_backlog_messages(self, count: int) -> Trigger:
+        """Undelivered-message count at or above which a Pub/Sub backlog trigger
+        fires (default 1000)."""
+        self._filters["gcp_max_backlog_messages"] = count
+        return self
+
     # -- Kyverno filters -----------------------------------------------------
     # Cluster/namespace scoping uses the generic .cluster() / .namespace()
     # helpers since Kyverno signals ride the Kubernetes event pipeline.
@@ -676,6 +884,141 @@ class Trigger:
     @staticmethod
     def aws_any() -> Trigger:
         return Trigger("aws", "any")
+
+    # ======================================================================
+    # Factory methods — Google Cloud (GCP)
+    #
+    # All GCP cost triggers are poll-derived: GCP publishes no tenant-wide
+    # outbound webhook for cost events. Cost data comes from a customer-enabled
+    # BigQuery billing export, which Google can take up to 24h to populate.
+    # ======================================================================
+
+    @staticmethod
+    def gcp_cost_anomaly() -> Trigger:
+        """A GCP service's spend deviates sharply from its trailing baseline."""
+        return Trigger("gcp", "cost_anomaly")
+
+    @staticmethod
+    def gcp_budget_alert() -> Trigger:
+        """A Cloud Billing budget is at or over its threshold."""
+        return Trigger("gcp", "budget_alert")
+
+    @staticmethod
+    def gcp_forecast_overrun() -> Trigger:
+        """Projected month-end GCP spend exceeds last month's total by >20%."""
+        return Trigger("gcp", "forecast_overrun")
+
+    @staticmethod
+    def gcp_spend_spike() -> Trigger:
+        """Yesterday's GCP spend exceeds the trailing 7-day average."""
+        return Trigger("gcp", "spend_spike")
+
+    @staticmethod
+    def gcp_idle_resource() -> Trigger:
+        """Idle-resource scan found unattached disks, unused static IPs, low-CPU instances, or old snapshots."""
+        return Trigger("gcp", "idle_resource")
+
+    @staticmethod
+    def gcp_any() -> Trigger:
+        return Trigger("gcp", "any")
+
+    # -- GCP compute and operations (Phase 2) --
+    # These poll free (quota-limited) APIs and describe discrete failures, so they
+    # default to a 5-minute cadence and dedupe per occurrence rather than daily.
+
+    @staticmethod
+    def gcp_instance_preempted() -> Trigger:
+        """A Spot/preemptible Compute Engine instance was reclaimed by Google."""
+        return Trigger("gcp", "instance.preempted")
+
+    @staticmethod
+    def gcp_instance_terminated_abnormally() -> Trigger:
+        """A Compute Engine instance stopped for a reason other than a user request."""
+        return Trigger("gcp", "instance.terminated_abnormally")
+
+    @staticmethod
+    def gcp_mig_unhealthy() -> Trigger:
+        """A managed instance group has unhealthy members or cannot reach its target size."""
+        return Trigger("gcp", "mig.unhealthy")
+
+    @staticmethod
+    def gcp_nodepool_degraded() -> Trigger:
+        """A GKE node pool is in a non-running state (failed upgrade, exhausted capacity)."""
+        return Trigger("gcp", "nodepool.degraded")
+
+    @staticmethod
+    def gcp_cloudrun_revision_failed() -> Trigger:
+        """A Cloud Run service's latest revision failed to become ready."""
+        return Trigger("gcp", "cloudrun.revision_failed")
+
+    @staticmethod
+    def gcp_monitoring_alert_fired() -> Trigger:
+        """A Cloud Monitoring alert policy is firing."""
+        return Trigger("gcp", "monitoring.alert_fired")
+
+    @staticmethod
+    def gcp_logging_error_pattern() -> Trigger:
+        """Matching Cloud Logging entries exceeded a count threshold."""
+        return Trigger("gcp", "logging.error_pattern")
+
+    @staticmethod
+    def gcp_build_failed() -> Trigger:
+        """A Cloud Build finished with FAILURE, TIMEOUT, or INTERNAL_ERROR."""
+        return Trigger("gcp", "build.failed")
+
+    # -- GCP security (Phase 3) --
+
+    @staticmethod
+    def gcp_scc_finding() -> Trigger:
+        """A new active Security Command Center finding. Requires org-level SCC access."""
+        return Trigger("gcp", "scc.finding")
+
+    @staticmethod
+    def gcp_iam_policy_change() -> Trigger:
+        """A privileged IAM role (owner, editor, security admin) was granted."""
+        return Trigger("gcp", "iam.policy_change")
+
+    @staticmethod
+    def gcp_service_account_key_stale() -> Trigger:
+        """A user-managed service-account key exceeded the age threshold."""
+        return Trigger("gcp", "sa_key.stale")
+
+    @staticmethod
+    def gcp_public_bucket() -> Trigger:
+        """A Cloud Storage bucket grants access to allUsers or allAuthenticatedUsers."""
+        return Trigger("gcp", "storage.public_access")
+
+    @staticmethod
+    def gcp_public_iam_binding() -> Trigger:
+        """The project IAM policy grants a role to a public principal."""
+        return Trigger("gcp", "iam.public_binding")
+
+    # -- GCP data (Phase 3) --
+
+    @staticmethod
+    def gcp_bigquery_job_failed() -> Trigger:
+        """A BigQuery job finished with an error."""
+        return Trigger("gcp", "bigquery.job_failed")
+
+    @staticmethod
+    def gcp_bigquery_expensive_query() -> Trigger:
+        """A BigQuery job billed more than the configured amount of data."""
+        return Trigger("gcp", "bigquery.expensive_query")
+
+    @staticmethod
+    def gcp_cloudsql_unhealthy() -> Trigger:
+        """A Cloud SQL instance is not RUNNABLE."""
+        return Trigger("gcp", "cloudsql.unhealthy")
+
+    @staticmethod
+    def gcp_pubsub_backlog() -> Trigger:
+        """A Pub/Sub subscription's undelivered message count exceeded the threshold."""
+        return Trigger("gcp", "pubsub.backlog")
+
+    @staticmethod
+    def gcp_dataflow_job_failed() -> Trigger:
+        """A Dataflow job entered a failed state."""
+        return Trigger("gcp", "dataflow.job_failed")
 
     # ======================================================================
     # Factory methods — PagerDuty
