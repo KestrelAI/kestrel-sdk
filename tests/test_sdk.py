@@ -1817,6 +1817,16 @@ class TestBuilderDSL:
         assert tc["source"] == "request"
         assert tc["signals"][0]["filters"]["request_categories"] == ["gcp"]
 
+    def test_gcp_provisioning_actions_serialize(self):
+        """The GCP IaC generation/execution factories emit the gcp integration
+        and the catalog block IDs."""
+        gen = Action.gcp_generate_cloud_resource()
+        assert gen._integration == "gcp"
+        assert gen._action == "gcp-generate-cloud-resource"
+        run = Action.gcp_execute_cloud_cli()
+        assert run._integration == "gcp"
+        assert run._action == "gcp-execute-cloud-cli"
+
     def test_databricks_actions_serialize(self):
         """Databricks factories emit the right integration, action IDs, and
         config keys."""

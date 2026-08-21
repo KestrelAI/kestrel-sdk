@@ -1551,6 +1551,16 @@ class Action:
         """AI multi-turn read-only investigation across GCP compute, GKE, Cloud Run, metrics, logs, and builds."""
         return Action("gcp", "gcp-investigate")
 
+    @staticmethod
+    def gcp_generate_cloud_resource() -> Action:
+        """AI generates or edits Terraform (google provider) or gcloud CLI for GCP resources (GKE, Cloud SQL, VPC, GCS, Cloud Run, ...)."""
+        return Action("gcp", "gcp-generate-cloud-resource")
+
+    @staticmethod
+    def gcp_execute_cloud_cli() -> Action:
+        """Execute the generated gcloud commands against a connected project. Gate behind an Approval node."""
+        return Action("gcp", "gcp-execute-cloud-cli")
+
     # ======================================================================
     # Factory methods — Google Cloud security (Phase 3)
     #
