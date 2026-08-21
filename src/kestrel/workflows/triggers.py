@@ -1931,6 +1931,10 @@ class Trigger:
         return Trigger("request", "any").filter(request_categories=["databricks"])
 
     @staticmethod
+    def request_gcp() -> Trigger:
+        return Trigger("request", "any").filter(request_categories=["gcp"])
+
+    @staticmethod
     def request_general() -> Trigger:
         return Trigger("request", "any").filter(request_categories=["general"])
 

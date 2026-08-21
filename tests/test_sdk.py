@@ -1811,6 +1811,12 @@ class TestBuilderDSL:
         assert tc["source"] == "request"
         assert tc["signals"][0]["filters"]["request_categories"] == ["databricks"]
 
+    def test_request_gcp_serializes(self):
+        """The GCP developer-request trigger emits the gcp request category."""
+        _, tc = Workflow("req").trigger(Trigger.request_gcp()).build()
+        assert tc["source"] == "request"
+        assert tc["signals"][0]["filters"]["request_categories"] == ["gcp"]
+
     def test_databricks_actions_serialize(self):
         """Databricks factories emit the right integration, action IDs, and
         config keys."""
