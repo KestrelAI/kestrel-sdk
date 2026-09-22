@@ -1827,6 +1827,52 @@ class TestBuilderDSL:
         assert run._integration == "gcp"
         assert run._action == "gcp-execute-cloud-cli"
 
+    def test_aws_family_actions_serialize(self):
+        """Every aws-ops / aws-security / aws-data factory emits its family
+        integration and the catalog block ID (block ID == factory name with
+        dashes), and config chaining still works on them."""
+        families = {
+            "aws-ops": [
+                "aws_get_instance", "aws_get_asg", "aws_start_instance", "aws_reboot_instance",
+                "aws_resize_asg", "aws_start_instance_refresh", "aws_list_nodegroups",
+                "aws_describe_nodegroup_health", "aws_scale_nodegroup", "aws_get_lambda_function",
+                "aws_update_lambda_concurrency", "aws_ecs_restart_service", "aws_query_metrics",
+                "aws_query_logs",
+            ],
+            "aws-security": [
+                "aws_list_security_hub_findings", "aws_audit_iam_users", "aws_audit_access_keys",
+                "aws_find_public_buckets", "aws_audit_security_groups", "aws_deactivate_access_key",
+                "aws_detach_iam_policy", "aws_block_public_bucket", "aws_quarantine_instance",
+            ],
+            "aws-data": [
+                "aws_list_rds_instances", "aws_get_rds_instance", "aws_describe_rds_events",
+                "aws_reboot_rds_instance", "aws_get_dynamodb_table", "aws_update_dynamodb_capacity",
+                "aws_list_queues", "aws_purge_queue", "aws_redrive_dlq", "aws_run_athena_query",
+            ],
+        }
+        assert sum(len(v) for v in families.values()) == 33
+        for integration, names in families.items():
+            for name in names:
+                act = getattr(Action, name)()
+                assert act._integration == integration, name
+                assert act._action == name.replace("_", "-"), name
+
+        redrive = (
+            Action.aws_redrive_dlq()
+            .config("aws_account", "123456789012")
+            .config("region", "us-east-1")
+            .config("dlq_name", "orders-dlq")
+            .config("destination_queue", "orders")
+        )
+        assert redrive._config["destination_queue"] == "orders"
+        assert redrive._config["region"] == "us-east-1"
+
+    def test_gcp_trigger_cloud_rca_serializes(self):
+        """GCP now has the same RCA + fix-generation block AWS has."""
+        rca = Action.gcp_trigger_cloud_rca()
+        assert rca._integration == "gcp"
+        assert rca._action == "gcp-trigger-cloud-rca"
+
     def test_databricks_actions_serialize(self):
         """Databricks factories emit the right integration, action IDs, and
         config keys."""

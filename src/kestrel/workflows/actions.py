@@ -1382,6 +1382,178 @@ class Action:
         """Delete EBS snapshots older than a threshold (AMI-referenced snapshots skipped)."""
         return Action("aws-cost", "aws-delete-old-snapshots")
 
+    # AWS operations, security, and data blocks. These belong to the
+    # "aws-ops" / "aws-security" / "aws-data" integrations, distinct from
+    # "aws-cost". Blocks that change infrastructure should sit behind an
+    # Approval node.
+    # ======================================================================
+
+    @staticmethod
+    def aws_get_instance() -> Action:
+        """EC2 instance state, type, and the state-transition reason."""
+        return Action("aws-ops", "aws-get-instance")
+
+    @staticmethod
+    def aws_get_asg() -> Action:
+        """Auto Scaling group health: desired/min/max, in-service and unhealthy counts."""
+        return Action("aws-ops", "aws-get-asg")
+
+    @staticmethod
+    def aws_start_instance() -> Action:
+        """Start a stopped EC2 instance (kestrel:protected instances skipped)."""
+        return Action("aws-ops", "aws-start-instance")
+
+    @staticmethod
+    def aws_reboot_instance() -> Action:
+        """Reboot an EC2 instance. Place behind an Approval node."""
+        return Action("aws-ops", "aws-reboot-instance")
+
+    @staticmethod
+    def aws_resize_asg() -> Action:
+        """Set an ASG's desired capacity (rejected outside min/max bounds)."""
+        return Action("aws-ops", "aws-resize-asg")
+
+    @staticmethod
+    def aws_start_instance_refresh() -> Action:
+        """Rolling instance refresh on an ASG. Place behind an Approval node."""
+        return Action("aws-ops", "aws-start-instance-refresh")
+
+    @staticmethod
+    def aws_list_nodegroups() -> Action:
+        """List EKS node groups with status, size, and scaling bounds."""
+        return Action("aws-ops", "aws-list-nodegroups")
+
+    @staticmethod
+    def aws_describe_nodegroup_health() -> Action:
+        """EKS node group status plus AWS's own health issues list."""
+        return Action("aws-ops", "aws-describe-nodegroup-health")
+
+    @staticmethod
+    def aws_scale_nodegroup() -> Action:
+        """Set an EKS node group's desired size (and optional min/max)."""
+        return Action("aws-ops", "aws-scale-nodegroup")
+
+    @staticmethod
+    def aws_get_lambda_function() -> Action:
+        """Lambda function state, runtime, memory, timeout, reserved concurrency."""
+        return Action("aws-ops", "aws-get-lambda-function")
+
+    @staticmethod
+    def aws_update_lambda_concurrency() -> Action:
+        """Set Lambda reserved concurrency; 0 throttles the function."""
+        return Action("aws-ops", "aws-update-lambda-concurrency")
+
+    @staticmethod
+    def aws_ecs_restart_service() -> Action:
+        """Force a new deployment of an ECS service (rolling restart)."""
+        return Action("aws-ops", "aws-ecs-restart-service")
+
+    @staticmethod
+    def aws_query_metrics() -> Action:
+        """CloudWatch metric query over a lookback window."""
+        return Action("aws-ops", "aws-query-metrics")
+
+    @staticmethod
+    def aws_query_logs() -> Action:
+        """CloudWatch Logs Insights query over a lookback window."""
+        return Action("aws-ops", "aws-query-logs")
+
+    @staticmethod
+    def aws_list_security_hub_findings() -> Action:
+        """Active Security Hub findings filtered by severity."""
+        return Action("aws-security", "aws-list-security-hub-findings")
+
+    @staticmethod
+    def aws_audit_iam_users() -> Action:
+        """Audit IAM users for missing MFA and stale access keys."""
+        return Action("aws-security", "aws-audit-iam-users")
+
+    @staticmethod
+    def aws_audit_access_keys() -> Action:
+        """Find old active access keys; outputs feed the deactivate block."""
+        return Action("aws-security", "aws-audit-access-keys")
+
+    @staticmethod
+    def aws_find_public_buckets() -> Action:
+        """Scan S3 buckets for missing public-access protection."""
+        return Action("aws-security", "aws-find-public-buckets")
+
+    @staticmethod
+    def aws_audit_security_groups() -> Action:
+        """Find security groups with world-open sensitive ports."""
+        return Action("aws-security", "aws-audit-security-groups")
+
+    @staticmethod
+    def aws_deactivate_access_key() -> Action:
+        """Deactivate one IAM access key (reversible). Approval-gated."""
+        return Action("aws-security", "aws-deactivate-access-key")
+
+    @staticmethod
+    def aws_detach_iam_policy() -> Action:
+        """Detach one managed policy from a user or role. Approval-gated."""
+        return Action("aws-security", "aws-detach-iam-policy")
+
+    @staticmethod
+    def aws_block_public_bucket() -> Action:
+        """Enable the full S3 public-access block on one bucket. Approval-gated."""
+        return Action("aws-security", "aws-block-public-bucket")
+
+    @staticmethod
+    def aws_quarantine_instance() -> Action:
+        """Isolate an EC2 instance behind an empty security group. Approval-gated."""
+        return Action("aws-security", "aws-quarantine-instance")
+
+    @staticmethod
+    def aws_list_rds_instances() -> Action:
+        """List RDS instances with status, engine, and Multi-AZ."""
+        return Action("aws-data", "aws-list-rds-instances")
+
+    @staticmethod
+    def aws_get_rds_instance() -> Action:
+        """One RDS instance's status, class, storage, and endpoint."""
+        return Action("aws-data", "aws-get-rds-instance")
+
+    @staticmethod
+    def aws_describe_rds_events() -> Action:
+        """Recent RDS events (failovers, low storage, maintenance)."""
+        return Action("aws-data", "aws-describe-rds-events")
+
+    @staticmethod
+    def aws_reboot_rds_instance() -> Action:
+        """Reboot an RDS instance, optionally forcing a Multi-AZ failover. Approval-gated."""
+        return Action("aws-data", "aws-reboot-rds-instance")
+
+    @staticmethod
+    def aws_get_dynamodb_table() -> Action:
+        """DynamoDB table status, billing mode, and capacity."""
+        return Action("aws-data", "aws-get-dynamodb-table")
+
+    @staticmethod
+    def aws_update_dynamodb_capacity() -> Action:
+        """Set DynamoDB provisioned capacity or switch to on-demand. Approval-gated."""
+        return Action("aws-data", "aws-update-dynamodb-capacity")
+
+    @staticmethod
+    def aws_list_queues() -> Action:
+        """List SQS queues with depth and in-flight counts."""
+        return Action("aws-data", "aws-list-queues")
+
+    @staticmethod
+    def aws_purge_queue() -> Action:
+        """Delete every message in an SQS queue (irreversible). Approval-gated."""
+        return Action("aws-data", "aws-purge-queue")
+
+    @staticmethod
+    def aws_redrive_dlq() -> Action:
+        """Move DLQ messages back to their source queue (or to an explicit destination_queue). Approval-gated."""
+        return Action("aws-data", "aws-redrive-dlq")
+
+    @staticmethod
+    def aws_run_athena_query() -> Action:
+        """Read-only Athena SELECT with a bytes-scanned ceiling."""
+        return Action("aws-data", "aws-run-athena-query")
+
+    # ======================================================================
     # ======================================================================
     # Factory methods — Google Cloud (GCP) Cost
     #
@@ -1550,6 +1722,11 @@ class Action:
     def gcp_investigate() -> Action:
         """AI multi-turn read-only investigation across GCP compute, GKE, Cloud Run, metrics, logs, and builds."""
         return Action("gcp", "gcp-investigate")
+
+    @staticmethod
+    def gcp_trigger_cloud_rca() -> Action:
+        """AI root cause analysis for a GCP incident with generated gcloud/Terraform fixes."""
+        return Action("gcp", "gcp-trigger-cloud-rca")
 
     @staticmethod
     def gcp_generate_cloud_resource() -> Action:
