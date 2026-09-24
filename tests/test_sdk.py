@@ -144,6 +144,24 @@ class TestHttpErrorMapping:
             client.workflows.list()
 
     @respx.mock
+    def test_400_with_list_body_raises_kestrel_error(self, client):
+        respx.get(f"{SERVER}/api/workflows").mock(
+            httpx.Response(422, json=[{"loc": ["name"], "msg": "field required"}])
+        )
+        with pytest.raises(KestrelError) as exc:
+            client.workflows.list()
+        assert exc.value.status_code == 422
+        assert "field required" in str(exc.value)
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_async_400_with_list_body_raises_kestrel_error(self):
+        respx.get(f"{SERVER}/api/workflows").mock(httpx.Response(400, json=["bad request"]))
+        async with AsyncKestrelClient(server=SERVER, api_key=API_KEY) as c:
+            with pytest.raises(KestrelError):
+                await c.workflows.list()
+
+    @respx.mock
     def test_empty_body_returns_none(self, client):
         respx.post(f"{SERVER}/api/workflows/wf-1/activate").mock(httpx.Response(204, text=""))
         assert client.workflows.activate("wf-1") is None
