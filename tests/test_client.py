@@ -5,7 +5,7 @@ import httpx
 import pytest
 import respx
 
-from kestrel import KestrelClient, Workflow, WorkflowStats, Approval, AuthError
+from kestrel import KestrelClient, AsyncKestrelClient, Workflow, WorkflowStats, Approval, AuthError
 
 
 SERVER = "https://test.usekestrel.ai"
@@ -192,6 +192,29 @@ class TestAuth:
             mock_load.return_value = type("C", (), {"is_logged_in": False})()
             with pytest.raises(AuthError, match="Not logged in"):
                 KestrelClient.from_config()
+
+    def _write_config(self, tmp_path, monkeypatch, **fields):
+        path = tmp_path / "config.json"
+        path.write_text(json.dumps({"server_url": SERVER, "session_token": "", **fields}))
+        monkeypatch.setattr("kestrel.auth._CONFIG_PATH", path)
+
+    def test_from_config_with_api_key(self, tmp_path, monkeypatch):
+        # `kestrel auth kestrel_sk_...` writes api_key and an empty session_token
+        self._write_config(tmp_path, monkeypatch, api_key="kestrel_sk_test")
+        client = KestrelClient.from_config()
+        assert client._http.headers["Authorization"] == "Bearer kestrel_sk_test"
+        assert "X-Session-Token" not in client._http.headers
+
+    def test_async_from_config_with_api_key(self, tmp_path, monkeypatch):
+        self._write_config(tmp_path, monkeypatch, api_key="kestrel_sk_test")
+        client = AsyncKestrelClient.from_config()
+        assert client._http.headers["Authorization"] == "Bearer kestrel_sk_test"
+
+    def test_from_config_with_session_token(self, tmp_path, monkeypatch):
+        self._write_config(tmp_path, monkeypatch, session_token="tok-123")
+        client = KestrelClient.from_config()
+        assert client._http.headers["X-Session-Token"] == "tok-123"
+        assert "Authorization" not in client._http.headers
 
     @respx.mock
     def test_auth_error_on_401(self, client: KestrelClient):

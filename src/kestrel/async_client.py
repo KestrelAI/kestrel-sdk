@@ -272,6 +272,8 @@ class AsyncKestrelClient:
         cfg = load_config()
         if not cfg.is_logged_in:
             raise AuthError("Not logged in. Run `kestrel login` or use AsyncKestrelClient(api_key=...).")
+        if cfg.api_key:
+            return cls(server=cfg.server_url, api_key=cfg.api_key)
         return cls(server=cfg.server_url, session_token=cfg.session_token)
 
     async def close(self) -> None:
