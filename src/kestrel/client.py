@@ -395,8 +395,9 @@ class KestrelClient:
                 if isinstance(data, dict) and "missing_fields" in data:
                     msg = data.get("message") or data.get("error", "Validation failed")
                     raise ValidationError(msg, missing_fields=data["missing_fields"], status_code=resp.status_code)
-                msg = data.get("message") or data.get("error") or resp.text[:200]
-                raise KestrelError(msg, status_code=resp.status_code)
+                if isinstance(data, dict):
+                    msg = data.get("message") or data.get("error") or resp.text[:200]
+                    raise KestrelError(msg, status_code=resp.status_code)
             except (ValueError, KeyError):
                 pass
             raise KestrelError(resp.text[:200], status_code=resp.status_code)
